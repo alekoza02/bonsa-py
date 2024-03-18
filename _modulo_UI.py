@@ -3,6 +3,8 @@ import pygame
 import ctypes
 import time
 
+from _modulo_MATE import Mate
+
 class Logica:
     def __init__(self) -> None:
         '''
@@ -220,10 +222,18 @@ class Schermo:
         # self.buffer = np.random.random(self.buffer.shape) * 255
         # self.surface = pygame.surfarray.make_surface(self.buffer) 
         self.schermo.fill((148 / 7, 177 / 7, 255 / 7))
+            
+    def renderizza_tri_buffer(self, triangles: np.ndarray, logica: Logica) -> None:
         
-    def renderizza_tri_buffer(self, triangles: np.ndarray) -> None:
+        triangles = np.array(triangles)
+        triangles = Mate.add_homogenous(triangles)
         
-        triangles = np.array(triangles) * self.w
+        triangles = triangles @ Mate.rotx(logica.dt / 300)
+        triangles = triangles @ Mate.rotz(logica.dt / 600)
+        # triangles = triangles @ Mate.perspective(self.w, self.h)
+        # triangles /= triangles[:, :, -1].reshape(triangles.shape[0], triangles.shape[1], 1)
+        triangles = triangles @ Mate.scale(self.w / 3, self.w / 3, self.w / 3)
+        triangles = triangles @ Mate.traslation(self.w // 2, self.h // 2)
         
         for tri in triangles:
             pygame.draw.polygon(self.schermo, [100, 100, 100], tri[:, :2])

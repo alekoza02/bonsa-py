@@ -3,11 +3,12 @@ if __name__ == "__main__":
     from pygame.locals import *
 
     from _modulo_UI import UI, Logica
- 
+    
     ui = UI()
     logica = Logica()
 
-    tri_buffer = [[[.5, .2], [.8, .4], [.05, .9]]]
+    tri_buffer = [[[.5, .2, -.1], [.8, .4, -.1], [.05, .9, -.1]],
+                  [[-.5, -.2, .1], [-.8, -.4, .1], [-.05, -.9, .1]]]
     
     while ui.running:
 
@@ -30,12 +31,25 @@ if __name__ == "__main__":
                 # MOUSE
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
-                         print("Bottone schiacciato")
+                        logica.dragging = True
+                        logica.dragging_end_pos = logica.mouse_pos
+
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1: 
+                        logica.dragging = False
+                        logica.dragging_end_pos = logica.mouse_pos
+
+                if event.type == pygame.MOUSEMOTION:
+                    if logica.dragging:
+                        logica.dragging_start_pos = logica.dragging_end_pos
+                        logica.dragging_end_pos = logica.mouse_pos
+                        logica.dragging_dx = logica.dragging_end_pos[0] - logica.dragging_start_pos[0]
+                        logica.dragging_dy = - logica.dragging_end_pos[1] + logica.dragging_start_pos[1] # sistema di riferimento invertito
 
         # UI ----------------------------------------------------------------
         ui.scena["main"].label_text["title"].disegnami()
         ui.scena["main"].schermo["viewport"].disegnami()
-        ui.scena["main"].schermo["viewport"].renderizza_tri_buffer(tri_buffer)
+        ui.scena["main"].schermo["viewport"].renderizza_tri_buffer(tri_buffer, logica)
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
