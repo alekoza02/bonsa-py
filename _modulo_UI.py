@@ -225,9 +225,12 @@ class Schermo:
             
     def renderizza_tri_buffer(self, triangles: np.ndarray, logica: Logica) -> None:
         
+        # nel dubbio ritrasformo tutto in array
         triangles = np.array(triangles)
+        # aggiungo l'1 finale per avere coordinate omogenee
         triangles = Mate.add_homogenous(triangles)
         
+        # trasformazioni base (in futuro -> rotazione con mouse)
         triangles = triangles @ Mate.rotx(logica.dt / 300)
         triangles = triangles @ Mate.rotz(logica.dt / 600)
         # triangles = triangles @ Mate.perspective(self.w, self.h)
@@ -235,7 +238,8 @@ class Schermo:
         triangles = triangles @ Mate.scale(self.w / 3, self.w / 3, self.w / 3)
         triangles = triangles @ Mate.traslation(self.w // 2, self.h // 2)
         
+        # disegno tutti i triangoli
         for tri in triangles:
-            pygame.draw.polygon(self.schermo, [100, 100, 100], tri[:, :2])
+            pygame.draw.polygon(self.schermo, [100, 100, 100], tri[:, :2], 1 if logica.dragging else 0)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))

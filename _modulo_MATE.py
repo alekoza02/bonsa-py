@@ -40,6 +40,33 @@ class Mate:
             [0, -np.sin(a), np.cos(a), 0],
             [0, 0, 0, 1]
         ])
+        
+    def rotate_using_camera():
+        # alpha = a.value
+        # beta = b.value
+
+        # cam_p_tmp = np.array([zoom.value * np.cos(alpha) * np.cos(beta), zoom.value * np.sin(alpha) * np.cos(beta), zoom.value * np.sin(beta), 1])
+
+        # cam_dir = -cam_p_tmp[:3]
+        # cam_dir /= np.linalg.norm(cam_dir)
+        # cam_rig = np.array([cam_dir[1], - cam_dir[0], 0])
+        # cam_rig /= np.linalg.norm(cam_rig)
+        # cam_up = np.cross(cam_rig, cam_dir)
+
+        # cam_p = cam_p_tmp + np.array([0, 0, offset.value, 0])
+            
+        def camera_world(cam_p: np.ndarray[float], cam_rig: np.ndarray[float], cam_up: np.ndarray[float], cam_dir: np.ndarray[float]) -> np.ndarray[np.ndarray[float]]:
+            return np.array(
+                [[1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [-cam_p[0], -cam_p[1], -cam_p[2], 1]]
+            ) @ np.array(
+                [[cam_rig[0], cam_up[0], cam_dir[0], 0],
+                [cam_rig[1], cam_up[1], cam_dir[1], 0],
+                [cam_rig[2], cam_up[2], cam_dir[2], 0],
+                [0, 0, 0, 1]]
+            )
     
     @cache
     @staticmethod
