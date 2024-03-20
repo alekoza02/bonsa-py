@@ -42,7 +42,7 @@ class Mate:
         ])
 
     @staticmethod
-    def camera_world(camera: np.ndarray | any) -> np.ndarray[np.ndarray[float]]:
+    def camera_world(camera: np.ndarray) -> np.ndarray[np.ndarray[float]]:
         return np.array(
             [[1, 0, 0, 0],
              [0, 1, 0, 0],

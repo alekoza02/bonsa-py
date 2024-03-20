@@ -4,9 +4,11 @@ if __name__ == "__main__":
 
     from _modulo_UI import UI, Logica
     from _modulo_MATE import Camera, PointCloud, DebugMesh
+    from _modulo_CRESCITA import Crescita
     
     ui = UI()
     logica = Logica()
+    crescita = Crescita()
 
     # DEBUGGING SESSION
     camera = Camera()
@@ -77,8 +79,11 @@ if __name__ == "__main__":
         
         camera = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
+        # logica patre
+        # point_cloud.verteces_ori = crescita.ciclo_principale()
+        
         ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
-        ui.scena["main"].schermo["viewport"].scelta_debug(True, True)
+        debug_mesh.scelta_debug(True, True)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         # UI ----------------------------------------------------------------
 
