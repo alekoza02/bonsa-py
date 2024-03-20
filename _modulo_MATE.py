@@ -305,14 +305,14 @@ class DebugMesh:
         ])
         
         # Define the side length of the square
-        side_length = 20
+        side_length = 5
 
         # Calculate the coordinates of the vertices of the square
         vertices = np.array([
-            [-side_length / 2, -side_length / 2],
-            [side_length / 2, -side_length / 2],
+            [-side_length / 2, side_length / 2],
             [side_length / 2, side_length / 2],
-            [-side_length / 2, side_length / 2]
+            [side_length / 2, -side_length / 2],
+            [-side_length / 2, -side_length / 2]
         ])
 
         # Determine the number of vertices to distribute along each side

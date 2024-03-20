@@ -264,10 +264,14 @@ class Schermo:
             pygame.draw.line(self.schermo, colore, render_vertex_axis[3, :2], point[:2], 8)
             colore[indice] = 0
             
-        for indice in range(len(render_vertex_grid)//2):
-            point_1 = render_vertex_grid[indice]
-            point_2 = render_vertex_grid[indice + len(render_vertex_grid) // 4]
-            # pygame.draw.line(self.schermo, [255, 100, 100], point_1[:2], point_2[:2], 1)
+        for indice in range(len(render_vertex_grid)//4 + 1):
+            pygame.draw.line(self.schermo, [100, 100, 100], 
+                             render_vertex_grid[indice - 1][:2], 
+                             render_vertex_grid[int(3*len(render_vertex_grid)/4 - indice - 1)][:2], 1)
+            
+            pygame.draw.line(self.schermo, [100, 100, 100], 
+                             render_vertex_grid[indice - 1 + int(len(render_vertex_grid) / 4)][:2], 
+                             render_vertex_grid[len(render_vertex_grid) - indice - 1][:2], 1)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
         
