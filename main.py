@@ -3,12 +3,28 @@ if __name__ == "__main__":
     from pygame.locals import *
 
     from _modulo_UI import UI, Logica
+    from _modulo_MATE import Camera, PointCloud, DebugMesh
     
     ui = UI()
     logica = Logica()
 
-    tri_buffer = [[[.5, .2, -.1], [.8, .4, -.1], [.05, .9, -.1]],
-                  [[-.5, -.2, .1], [-.8, -.4, .1], [-.05, -.9, .1]]]
+    # DEBUGGING SESSION
+    camera = Camera()
+    
+    point_cloud = PointCloud([
+        [-1, -1, -1],
+        [-1, -1, 1],
+        [-1, 1, -1],
+        [-1, 1, 1],
+        [1, -1, -1],
+        [1, -1, 1],
+        [1, 1, -1],
+        [1, 1, 1],
+    ])
+    
+    debug_mesh = DebugMesh()
+    # DEBUGGING SESSION
+    
     
     while ui.running:
 
@@ -25,6 +41,9 @@ if __name__ == "__main__":
         # BLOCCO GESTIONE EVENTI -----------------------------------------------------------------------------
         # raccolta eventi
         eventi_in_corso = pygame.event.get()
+
+        # Stato di tutti i tasti
+        keys = pygame.key.get_pressed()
 
         # scena main UI
         for event in eventi_in_corso:
@@ -46,10 +65,19 @@ if __name__ == "__main__":
                         logica.dragging_dx = logica.dragging_end_pos[0] - logica.dragging_start_pos[0]
                         logica.dragging_dy = - logica.dragging_end_pos[1] + logica.dragging_start_pos[1] # sistema di riferimento invertito
 
+                # CONTROLLO TELECAMERA
+                logica.ctrl = True if keys[pygame.K_LCTRL] else False
+                logica.shift = True if keys[pygame.K_LSHIFT] else False
+                
+
         # UI ----------------------------------------------------------------
         ui.scena["main"].label_text["title"].disegnami()
         ui.scena["main"].schermo["viewport"].disegnami()
-        ui.scena["main"].schermo["viewport"].renderizza_tri_buffer(tri_buffer, logica)
+        
+        camera = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
+        ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
+        ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
+        
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo

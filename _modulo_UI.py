@@ -3,7 +3,7 @@ import pygame
 import ctypes
 import time
 
-from _modulo_MATE import Mate
+from _modulo_MATE import Mate, Camera, PointCloud, DebugMesh
 
 class Logica:
     def __init__(self) -> None:
@@ -20,6 +20,9 @@ class Logica:
         self.skip_salto = False
         self.dt = 0
         self.scena = 0
+        
+        self.ctrl = False
+        self.shift = False
 
 class UI:
     '''
@@ -63,7 +66,7 @@ class UI:
         self.BG : tuple[int] = (30, 30, 30)
         
         self.clock = pygame.time.Clock()
-        self.max_fps : int = 0
+        self.max_fps : int = 60
         self.current_fps : int = 0
         self.running : int = 1
 
@@ -222,24 +225,60 @@ class Schermo:
         # self.buffer = np.random.random(self.buffer.shape) * 255
         # self.surface = pygame.surfarray.make_surface(self.buffer) 
         self.schermo.fill((148 / 7, 177 / 7, 255 / 7))
-            
-    def renderizza_tri_buffer(self, triangles: np.ndarray, logica: Logica) -> None:
         
-        # nel dubbio ritrasformo tutto in array
-        triangles = np.array(triangles)
-        # aggiungo l'1 finale per avere coordinate omogenee
-        triangles = Mate.add_homogenous(triangles)
+    
+    def camera_setup(self, camera: Camera, logica: Logica):
+        camera.aggiorna_attributi(logica.ctrl, logica.shift, logica.dragging_dx, logica.dragging_dy)
+        camera.rotazione_camera()
         
-        # trasformazioni base (in futuro -> rotazione con mouse)
-        triangles = triangles @ Mate.rotx(logica.dt / 300)
-        triangles = triangles @ Mate.rotz(logica.dt / 600)
-        # triangles = triangles @ Mate.perspective(self.w, self.h)
-        # triangles /= triangles[:, :, -1].reshape(triangles.shape[0], triangles.shape[1], 1)
-        triangles = triangles @ Mate.scale(self.w / 3, self.w / 3, self.w / 3)
-        triangles = triangles @ Mate.traslation(self.w // 2, self.h // 2)
+        return camera
+    
         
-        # disegno tutti i triangoli
-        for tri in triangles:
-            pygame.draw.polygon(self.schermo, [100, 100, 100], tri[:, :2], 1 if logica.dragging else 0)
+    def renderizza_point_cloud(self, points: PointCloud, camera: Camera, logica: Logica) -> None:
+        
+        points.verteces_ori = Mate.add_homogenous(points.verteces_ori)
+        
+        points.applica_rotazioni(autorotation=logica.dt)
+        points.applica_traslazioni()
+
+        points.verteces_ori = Mate.remove_homogenous(points.verteces_ori)        
+        
+        render_vertex = self.apply_transforms(points.verteces, camera)
+        
+        for point in render_vertex:
+            pygame.draw.circle(self.schermo, [100, 100, 100], point[:2], 8)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
+    
+    def renderizza_debug_mesh(self, debug: DebugMesh, camera: Camera) -> None:    
+        render_vertex_axis = Mate.add_homogenous(debug.axis)
+        render_vertex_axis = self.apply_transforms(render_vertex_axis, camera)
+        
+        render_vertex_grid = Mate.add_homogenous(debug.grid)
+        render_vertex_grid = self.apply_transforms(render_vertex_grid, camera)
+        
+        colore = [0, 0, 0]
+        
+        for indice, point in enumerate(render_vertex_axis[:3]):
+            colore[indice] = 255
+            pygame.draw.line(self.schermo, colore, render_vertex_axis[3, :2], point[:2], 8)
+            colore[indice] = 0
+            
+        for indice in range(len(render_vertex_grid)//2):
+            point_1 = render_vertex_grid[indice]
+            point_2 = render_vertex_grid[indice + len(render_vertex_grid) // 4]
+            # pygame.draw.line(self.schermo, [255, 100, 100], point_1[:2], point_2[:2], 1)
+            
+        self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
+        
+        
+    def apply_transforms(self, vertici, camera):
+        render_vertex = vertici @ Mate.camera_world(camera)
+        render_vertex = render_vertex @ Mate.screen_world()            
+        
+        render_vertex = render_vertex @ Mate.frustrum(self.w, self.h)
+        render_vertex = Mate.proiezione(render_vertex)
+        
+        render_vertex = render_vertex @ Mate.centratura((self.w, self.h))
+        
+        return render_vertex
