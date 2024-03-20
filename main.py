@@ -11,6 +11,7 @@ if __name__ == "__main__":
     # DEBUGGING SESSION
     camera = Camera()
     
+    # cubo di prova
     point_cloud = PointCloud([
         [-1, -1, -1],
         [-1, -1, 1],
@@ -75,9 +76,10 @@ if __name__ == "__main__":
         ui.scena["main"].schermo["viewport"].disegnami()
         
         camera = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
-        ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
-        ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
+        ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
+        ui.scena["main"].schermo["viewport"].scelta_debug(True, True)
+        ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo

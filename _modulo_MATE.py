@@ -22,7 +22,7 @@ class Mate:
         ...
     
     @staticmethod
-    def centratura(dim):
+    def centratura(dim: tuple[int]) -> np.ndarray[np.ndarray[float]]:
         return np.array(
             [
                 [dim[0]//8,  0,      0,  0],
@@ -33,7 +33,7 @@ class Mate:
         )
 
     @staticmethod
-    def screen_world():
+    def screen_world() -> np.ndarray[np.ndarray[float]]:
         return np.array([
             [1,0,0,0],
             [0,0,1,0],
@@ -42,7 +42,7 @@ class Mate:
         ])
 
     @staticmethod
-    def camera_world(camera):
+    def camera_world(camera: np.ndarray | any) -> np.ndarray[np.ndarray[float]]:
         return np.array(
             [[1, 0, 0, 0],
              [0, 1, 0, 0],
@@ -56,7 +56,7 @@ class Mate:
         )
 
     @staticmethod
-    def rotx(ang):
+    def rotx(ang: float) -> np.ndarray[np.ndarray[float]]:
         return np.array([
             [1, 0, 0, 0],
             [0, np.cos(ang), np.sin(ang), 0],
@@ -65,7 +65,7 @@ class Mate:
         ])
 
     @staticmethod
-    def roty(ang):
+    def roty(ang: float) -> np.ndarray[np.ndarray[float]]:
         return np.array([
             [np.cos(ang), 0, np.sin(ang), 0],
             [0, 1, 0, 0],
@@ -74,7 +74,7 @@ class Mate:
         ])
 
     @staticmethod
-    def rotz(ang):
+    def rotz(ang: float) -> np.ndarray[np.ndarray[float]]:
         return np.array([
             [np.cos(ang), np.sin(ang), 0, 0],
             [-np.sin(ang), np.cos(ang), 0, 0],
@@ -83,7 +83,7 @@ class Mate:
         ])
     
     @staticmethod
-    def trasl(array):
+    def trasl(array: list | np.ndarray[float]) -> np.ndarray[np.ndarray[float]]:
         return np.array([
             [1, 0, 0, 0],
             [0, 1, 0, 0],
@@ -92,7 +92,7 @@ class Mate:
         ])
 
     @staticmethod
-    def frustrum(W,H, h_fov = np.pi / 6):
+    def frustrum(W: int, H: int, h_fov: float = np.pi / 6) -> np.ndarray[np.ndarray[float]]:
         # qua c'è un meno per sistemare l'orientamento della camera, altrimenti ottieni un'immagine specchiata in prospettiva
         v_fov = h_fov * H / W
         left = np.tan(h_fov / 2)
@@ -109,11 +109,13 @@ class Mate:
         ])
     
     @staticmethod
-    def proiezione(vertici):
+    def proiezione(vertici: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
         return vertici / vertici[:, -1].reshape(-1, 1)
     
     def add_homogenous(v: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
-        
+        '''
+        Aggiungo la 4 coordinata alla fine dei vettori con 3 coordinate. Supporto strutture come triangoli e liste di vettori
+        '''
         shape = v.shape
         
         if len(shape) == 3:
@@ -131,7 +133,9 @@ class Mate:
         return ones
     
     def remove_homogenous(v: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
-        
+        '''
+        Rimuovo la 4 coordinata alla fine dei vettori con 4 coordinate. Supporto strutture come triangoli e liste di vettori
+        '''
         shape = v.shape
         
         if len(shape) == 3:
@@ -143,12 +147,6 @@ class Mate:
         else:
             err_msg = f"Invalid vector shape: {shape}"
             raise IndexError(err_msg)
-    
-    
-    @staticmethod
-    def clear_cache_rotazioni() -> None:
-        Mate.rotx.cache_clear()
-        Mate.rotz.cache_clear()
         
 
 class Camera:
@@ -203,7 +201,7 @@ class Camera:
 
         # ---------------------------------------------------------------------------------------
 
-        # valori storati per caricamento impostazioni UI
+        # valori default di partenza
 
         self.pos[0] = 1.5
         self.pos[1] = -1.5
@@ -213,15 +211,11 @@ class Camera:
         self.rollio = 0
         self.imbard = round(45 / 57.3248, 3)
 
-    def modello_camera(self):
-
-        punto = self.pos
-        linea = np.array([self.pos, self.pos + self.dir])
-
-        return punto, linea
     
-    def rotazione_camera(self):
-
+    def rotazione_camera(self) -> None:
+        '''
+        Applico le rotazioni in ordine Eulero XYZ ai vari vettori di orientamento della camera
+        '''
         self.rig = self.rig_o @ Mate.rotx(self.becche)
         self.ups = self.ups_o @ Mate.rotx(self.becche)
         self.dir = self.dir_o @ Mate.rotx(self.becche)
@@ -234,15 +228,21 @@ class Camera:
         self.ups = self.ups @ Mate.rotz(self.imbard)
         self.dir = self.dir @ Mate.rotz(self.imbard)
 
-    def aggiorna_attributi(self, ctrl, shift, dx, dy):
-
+    def aggiorna_attributi(self, ctrl: bool, shift: bool, dx: float, dy: float) -> None:
+        '''
+        Aggiorna gli attributi della camera come pos / rot / zoom
+        '''
+        
+        # se il ctrl è schiacciato -> avverrà zoom
         if ctrl:
-            self.pos[:3] += self.dir[:3] * dy / 100 
+            self.pos[:3] += self.dir[:3] * dy / 100
 
+        # se lo shift è schiacciato -> avverrà traslazione
         elif shift:
             self.pos[:3] -= self.rig[:3] * dx / 100
             self.pos[:3] -= self.ups[:3] * dy / 100
 
+        # se non è schiacciato nulla -> avverrà rotazione
         else:
             self.becche += dy / 1000
             self.rollio += 0
@@ -262,14 +262,18 @@ class Modello:
         self.b = b  
         self.i = i
         
-    def applica_rotazioni(self):
-
+    def applica_rotazioni(self) -> None:
+        '''
+        Applicazioni rotazioni eulero XYZ
+        '''
         self.verteces = self.verteces_ori @ Mate.rotx(self.b)
         self.verteces = self.verteces @ Mate.roty(self.r)
         self.verteces = self.verteces @ Mate.rotz(self.i)
 
-    def applica_traslazioni(self):
-
+    def applica_traslazioni(self) -> None:
+        '''
+        Applicazioni traslazioni
+        '''
         self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]))
 
 class PointCloud:
@@ -284,14 +288,18 @@ class PointCloud:
         self.b = b  
         self.i = i
         
-    def applica_rotazioni(self, autorotation: float):
-
+    def applica_rotazioni(self, autorotation: float) -> None:
+        '''
+        Applicazioni rotazioni eulero XYZ
+        '''
         self.verteces = self.verteces_ori @ Mate.rotx(0)    
         self.verteces = self.verteces @ Mate.roty(0)   
         self.verteces = self.verteces @ Mate.rotz(autorotation / 300)  
 
-    def applica_traslazioni(self):
-
+    def applica_traslazioni(self) -> None:
+        '''
+        Applicazioni traslazioni
+        '''
         self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]))
 
 
@@ -303,6 +311,8 @@ class DebugMesh:
             [0.0, 0.0, 1.0],
             [0.0, 0.0, 0.0]
         ])
+        
+        '------------------------------------------------------------------'
         
         # Define the side length of the square
         side_length = 5
@@ -333,24 +343,12 @@ class DebugMesh:
         # Convert the list of points to a NumPy array
         self.grid = np.array(perimeter_points)
         
-        print(self.axis.shape, self.grid.shape)
+        self.debug_grid: bool = False
+        self.debug_axis: bool = False
         
-    def scelta_debug(grid: bool = False, axis: bool = False):
-        ...    
-    
-'''
-# in ordine:
-
-posizione e rotazione del modello e della telecamera prendono i valori di input dal programma
-----------------------------------------------------------------
-
-- vengono appplicate le rotazioni e le traslazioni al modello.
-- vengono aggiornati gli attributi della camera, cosicchè si trovi nel posto giusto puntando nel verso giusto
-
-- i punti del modello vengono portati nel camera space
-- successivamente vengono portati nel world space
-
-- vengono poi proiettati (frustrum & proiezione)
-
-- vengono centrati
-'''
+    def scelta_debug(self, grid: bool = False, axis: bool = False) -> None:
+        '''
+        Decidi cosa visualizzare durante il debug della camera
+        '''
+        self.debug_grid = grid
+        self.debug_axis = axis

@@ -221,13 +221,21 @@ class Schermo:
 
         self.schermo : pygame.Surface = pygame.Surface((self.w, self.h))
 
-    def disegnami(self):
+    def disegnami(self) -> None:
+        '''
+        Volendo potrà aggiungere un surfarray, per ora imposta solo lo sfondo
+        '''
         # self.buffer = np.random.random(self.buffer.shape) * 255
         # self.surface = pygame.surfarray.make_surface(self.buffer) 
         self.schermo.fill((148 / 7, 177 / 7, 255 / 7))
         
     
-    def camera_setup(self, camera: Camera, logica: Logica):
+    def camera_setup(self, camera: Camera, logica: Logica) -> Camera:
+        '''
+        Vengono eseguite 2 sub funzioni in cui:
+        Viene ricalcolata la posizione / rotazione / zoom della camera.
+        Viene applicata la posizione / rotazione / zoom alla camera 
+        '''
         camera.aggiorna_attributi(logica.ctrl, logica.shift, logica.dragging_dx, logica.dragging_dy)
         camera.rotazione_camera()
         
@@ -235,14 +243,21 @@ class Schermo:
     
         
     def renderizza_point_cloud(self, points: PointCloud, camera: Camera, logica: Logica) -> None:
+        '''
+        Viene renderizzato un array di punti nella classe PointCloud
+        '''
         
+        # aggiunta della 4 coordinata (omogenea) per poter applicare le varie matrici
         points.verteces_ori = Mate.add_homogenous(points.verteces_ori)
         
+        # applico le varie trasformazioni (SOLO locali all'oggetto) come l'autorotazione
         points.applica_rotazioni(autorotation=logica.dt)
         points.applica_traslazioni()
 
+        # rimuovo la coordinata oer non fare casini più avanti
         points.verteces_ori = Mate.remove_homogenous(points.verteces_ori)        
         
+        # uso la camera per proiettare tutto nel suo spazio e poter avere i vertici finali
         render_vertex = self.apply_transforms(points.verteces, camera)
         
         for point in render_vertex:
@@ -251,38 +266,57 @@ class Schermo:
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
     
     def renderizza_debug_mesh(self, debug: DebugMesh, camera: Camera) -> None:    
+        '''
+        Viene renderizzato (in base a scelte precedenti) se renderizzare:
+        - semplice sistema di riferimento XYZ
+        - Griglia centrata al centro con Z = 0
+        '''
+        
+        # aggiunta della 4 coordinata (omogenea) per poter applicare le varie matrici e direttamente trasformazione camera world
         render_vertex_axis = Mate.add_homogenous(debug.axis)
         render_vertex_axis = self.apply_transforms(render_vertex_axis, camera)
         
+        # aggiunta della 4 coordinata (omogenea) per poter applicare le varie matrici e direttamente trasformazione camera world
         render_vertex_grid = Mate.add_homogenous(debug.grid)
         render_vertex_grid = self.apply_transforms(render_vertex_grid, camera)
         
         colore = [0, 0, 0]
         
-        for indice, point in enumerate(render_vertex_axis[:3]):
-            colore[indice] = 255
-            pygame.draw.line(self.schermo, colore, render_vertex_axis[3, :2], point[:2], 8)
-            colore[indice] = 0
-            
-        for indice in range(len(render_vertex_grid)//4 + 1):
-            pygame.draw.line(self.schermo, [100, 100, 100], 
-                             render_vertex_grid[indice - 1][:2], 
-                             render_vertex_grid[int(3*len(render_vertex_grid)/4 - indice - 1)][:2], 1)
-            
-            pygame.draw.line(self.schermo, [100, 100, 100], 
-                             render_vertex_grid[indice - 1 + int(len(render_vertex_grid) / 4)][:2], 
-                             render_vertex_grid[len(render_vertex_grid) - indice - 1][:2], 1)
+        if debug.debug_axis:
+            for indice, point in enumerate(render_vertex_axis[:3]):
+                colore[indice] = 255
+                pygame.draw.line(self.schermo, colore, render_vertex_axis[3, :2], point[:2], 8)
+                colore[indice] = 0
+
+        if debug.debug_grid:
+            for indice in range(len(render_vertex_grid)//4 + 1):
+                # brutta parte sugli indici con cui genero una griglia partendo dai punti disposti lungo il perimetro del quadrato
+                pygame.draw.line(self.schermo, [100, 100, 100], 
+                                render_vertex_grid[indice - 1][:2], 
+                                render_vertex_grid[int(3*len(render_vertex_grid)/4 - indice - 1)][:2], 1)
+                
+                pygame.draw.line(self.schermo, [100, 100, 100], 
+                                render_vertex_grid[indice - 1 + int(len(render_vertex_grid) / 4)][:2], 
+                                render_vertex_grid[len(render_vertex_grid) - indice - 1][:2], 1)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
         
         
-    def apply_transforms(self, vertici, camera):
+    def apply_transforms(self, vertici: np.ndarray[float], camera: Camera) -> np.ndarray[float]:
+        '''
+        Applicazione in serie delle varie trasformazioni:
+        Camera -> World -> Frustrum -> Proiezione -> Centratura
+        '''
+        # sposto tutto nel camera world
         render_vertex = vertici @ Mate.camera_world(camera)
+        # sposto tutto nello screen world (sistema di riferimento Blender in cui il front è Y e up Z)
         render_vertex = render_vertex @ Mate.screen_world()            
         
+        # appiattisco tutto applicando definitivamente la prospettiva
         render_vertex = render_vertex @ Mate.frustrum(self.w, self.h)
         render_vertex = Mate.proiezione(render_vertex)
         
+        # centro tutto e scalo per farlo stare sullo schermo
         render_vertex = render_vertex @ Mate.centratura((self.w, self.h))
         
         return render_vertex
