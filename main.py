@@ -106,7 +106,7 @@ def main():
         
 if __name__ == "__main__":
     
-    active_profile = True
+    active_profile = False
     
     if active_profile:
         profiler = cProfile.Profile()
