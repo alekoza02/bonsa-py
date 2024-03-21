@@ -69,8 +69,8 @@ if __name__ == "__main__":
                         logica.dragging_dy = - logica.dragging_end_pos[1] + logica.dragging_start_pos[1] # sistema di riferimento invertito
 
                 # CONTROLLO TELECAMERA
-                logica.ctrl = True if keys[pygame.K_LCTRL] else False
-                logica.shift = True if keys[pygame.K_LSHIFT] else False
+                logica.ctrl = keys[pygame.K_LCTRL]
+                logica.shift = keys[pygame.K_LSHIFT]
                 
 
         # UI ----------------------------------------------------------------
@@ -82,9 +82,10 @@ if __name__ == "__main__":
         # logica patre
         # point_cloud.verteces_ori = crescita.ciclo_principale()
         
-        ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
         debug_mesh.scelta_debug(True, True)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
+        
+        ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo

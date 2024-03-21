@@ -3,7 +3,7 @@ import pygame
 import ctypes
 import time
 
-from _modulo_MATE import Mate, Camera, PointCloud, DebugMesh
+from _modulo_MATE import Mate, AcceleratedFoo, Camera, PointCloud, DebugMesh
 
 class Logica:
     def __init__(self) -> None:
@@ -261,7 +261,8 @@ class Schermo:
         render_vertex = self.apply_transforms(points.verteces, camera)
         
         for point in render_vertex:
-            pygame.draw.circle(self.schermo, [100, 100, 100], point[:2], 8)
+            if not AcceleratedFoo.any_fast(point, self.w//2, self.h//2):
+                pygame.draw.circle(self.schermo, [100, 100, 100], point[:2], 8)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
     
@@ -280,25 +281,19 @@ class Schermo:
         render_vertex_grid = Mate.add_homogenous(debug.grid)
         render_vertex_grid = self.apply_transforms(render_vertex_grid, camera)
         
-        colore = [0, 0, 0]
-        
         if debug.debug_axis:
-            for indice, point in enumerate(render_vertex_axis[:3]):
-                colore[indice] = 255
-                pygame.draw.line(self.schermo, colore, render_vertex_axis[3, :2], point[:2], 8)
-                colore[indice] = 0
-
-        if debug.debug_grid:
-            for indice in range(len(render_vertex_grid)//4 + 1):
-                # brutta parte sugli indici con cui genero una griglia partendo dai punti disposti lungo il perimetro del quadrato
-                pygame.draw.line(self.schermo, [100, 100, 100], 
-                                render_vertex_grid[indice - 1][:2], 
-                                render_vertex_grid[int(3*len(render_vertex_grid)/4 - indice - 1)][:2], 1)
+            colore = [0, 0, 0]
+            for indice, linea in enumerate(render_vertex_axis[debug.link_axis]):
+                if not AcceleratedFoo.any_fast(linea, self.w//2, self.h//2):
+                    colore[indice] = 255
+                    pygame.draw.line(self.schermo, colore, linea[0, :2], linea[1, :2], 8)
+                    colore[indice] = 0
                 
-                pygame.draw.line(self.schermo, [100, 100, 100], 
-                                render_vertex_grid[indice - 1 + int(len(render_vertex_grid) / 4)][:2], 
-                                render_vertex_grid[len(render_vertex_grid) - indice - 1][:2], 1)
-            
+        if debug.debug_grid:
+            for linea in render_vertex_grid[debug.link_grid]:
+                if not AcceleratedFoo.any_fast(linea, self.w//2, self.h//2):
+                    pygame.draw.line(self.schermo, [100, 100, 100], linea[0, :2], linea[1, :2], 1)
+                
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
         
         

@@ -1,5 +1,6 @@
 import numpy as np
 from functools import cache
+from numba import njit
 
 class Mate:
     def __init__(self) -> None:
@@ -25,8 +26,8 @@ class Mate:
     def centratura(dim: tuple[int]) -> np.ndarray[np.ndarray[float]]:
         return np.array(
             [
-                [dim[0]//8,  0,      0,  0],
-                [0,     dim[1]//8,   0,  0],
+                [dim[0]//2,  0,      0,  0],
+                [0,     dim[1]//2,   0,  0],
                 [0,     0,      1,  0],
                 [dim[0]//2,  dim[1]//2,   0,  1]
             ]
@@ -110,7 +111,9 @@ class Mate:
     
     @staticmethod
     def proiezione(vertici: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
-        return vertici / vertici[:, -1].reshape(-1, 1)
+        ris = vertici / vertici[:, -1].reshape(-1, 1)
+        ris[(ris < -2) | (ris > 2)] = 0
+        return ris
     
     def add_homogenous(v: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
         '''
@@ -147,7 +150,15 @@ class Mate:
         else:
             err_msg = f"Invalid vector shape: {shape}"
             raise IndexError(err_msg)
-        
+
+class AcceleratedFoo:
+    def __init__(self) -> None:
+        pass
+
+    @staticmethod
+    @njit(fastmath=True)
+    def any_fast(v: np.ndarray[float], a: float, b: float) -> bool:
+        return np.any((v == a) | (v == b))
 
 class Camera:
     def __init__(self) -> None:
@@ -203,11 +214,11 @@ class Camera:
 
         # valori default di partenza
 
-        self.pos[0] = 1.5
-        self.pos[1] = -1.5
-        self.pos[2] = 2
+        self.pos[0] = 7
+        self.pos[1] = -7
+        self.pos[2] = 5
 
-        self.becche = round(45 / 57.3248, 3)
+        self.becche = round(60 / 57.3248, 3)
         self.rollio = 0
         self.imbard = round(45 / 57.3248, 3)
 
@@ -292,8 +303,8 @@ class PointCloud:
         '''
         Applicazioni rotazioni eulero XYZ
         '''
-        self.verteces = self.verteces_ori @ Mate.rotx(0)    
-        self.verteces = self.verteces @ Mate.roty(0)   
+        self.verteces = self.verteces_ori @ Mate.rotx(self.b)    
+        self.verteces = self.verteces @ Mate.roty(self.r)   
         self.verteces = self.verteces @ Mate.rotz(autorotation / 300)  
 
     def applica_traslazioni(self) -> None:
@@ -312,37 +323,27 @@ class DebugMesh:
             [0.0, 0.0, 0.0]
         ])
         
+        self.link_axis = np.array([[0,3], [1,3], [2,3]])
+        
         '------------------------------------------------------------------'
         
         # Define the side length of the square
-        side_length = 5
-
-        # Calculate the coordinates of the vertices of the square
-        vertices = np.array([
-            [-side_length / 2, side_length / 2],
-            [side_length / 2, side_length / 2],
-            [side_length / 2, -side_length / 2],
-            [-side_length / 2, -side_length / 2]
-        ])
-
-        # Determine the number of vertices to distribute along each side
-        num_vertices_per_side = 40 // 4  # Divide by 4 sides
-
-        # Generate equally distributed points along each side
-        perimeter_points = []
-        for i in range(4):  # Iterate over each side
-            start_point = vertices[i]
-            end_point = vertices[(i + 1) % 4]  # Next vertex to close the loop
-            side_vector = end_point - start_point
-            distances = np.linspace(0, np.linalg.norm(side_vector), num_vertices_per_side + 1)[1:]
-            points_on_side = start_point + distances[:, np.newaxis] / np.linalg.norm(side_vector) * side_vector
-            zeros = np.zeros((points_on_side.shape[0], 3))
-            zeros[:, :2] = points_on_side
-            perimeter_points.extend(zeros)
-
-        # Convert the list of points to a NumPy array
-        self.grid = np.array(perimeter_points)
+        side_length = 10
         
+        tmp1 = [[x - side_length // 2, side_length // 2, 0] for x in range(side_length)]
+        tmp2 = [[side_length // 2, side_length // 2 - y, 0] for y in range(side_length)]
+        tmp3 = [[side_length // 2 - x, - side_length // 2, 0] for x in range(side_length)]
+        tmp4 = [[- side_length // 2, y - side_length // 2, 0] for y in range(side_length)]
+
+        self.grid = (np.ravel(np.array([tmp1, tmp2, tmp3, tmp4])).reshape(-1, 3))
+        
+        tmp1 = [[i, 3 * side_length - i] for i in range(side_length + 1)]
+        tmp2 = [[i + side_length, 4 * side_length - i] for i in range(side_length + 1)]
+        
+        self.link_grid = (np.ravel(np.array([tmp1, tmp2])).reshape(-1, 2))
+        self.link_grid[np.where(self.link_grid == side_length * 4)] = 0
+
+        # Calculate the 
         self.debug_grid: bool = False
         self.debug_axis: bool = False
         
