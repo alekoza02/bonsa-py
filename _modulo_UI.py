@@ -3,7 +3,7 @@ import pygame
 import ctypes
 import time
 
-from _modulo_MATE import Mate, AcceleratedFoo, Camera, PointCloud, DebugMesh
+from _modulo_MATE import Mate, AcceleratedFoo, Camera, PointCloud, DebugMesh, Modello
 
 class Logica:
     def __init__(self) -> None:
@@ -23,6 +23,16 @@ class Logica:
         
         self.ctrl = False
         self.shift = False
+        
+        self.messaggio_debug1: str = "Empty!"
+        self.messaggio_debug2: str = "Empty!"
+        self.messaggio_debug3: str = "Empty!"
+        self.messaggio_debug4: str = "Empty!"
+        self.messaggio_debug5: str = "Empty!"
+        
+    @property
+    def lista_messaggi(self):
+        return [self.messaggio_debug1, self.messaggio_debug2, self.messaggio_debug3, self.messaggio_debug4, self.messaggio_debug5]
 
 class UI:
     '''
@@ -125,7 +135,16 @@ class UI:
             self.running = 0
 
         # aggiornamento
+        self.current_fps = self.clock.get_fps()
         pygame.display.flip()
+        
+    def aggiorna_messaggi_debug(self, logica: Logica) -> None:
+        messaggio_inviato = 0
+        for indice, label in self.scena["main"].label_text.items():
+            messaggi = logica.lista_messaggi
+            if indice.startswith("debug"):
+                label.assegna_messaggio(messaggi[messaggio_inviato])
+                messaggio_inviato += 1
 
 class Font:
     def __init__(self, dimensione : str = "medio", rapporto : float = 1.0) -> None:    
@@ -170,6 +189,11 @@ class DefaultScene:
         self.parametri_repeat_elementi : list = [self.madre, self.shift, self.moltiplicatore_x, self.ori_y]
 
         self.label_text["title"] = LabelText(self.parametri_repeat_elementi, self.fonts["grande"], w=25, h=4, x=69.25, y=2, text="Benvenuto in Bonsa-py!")
+        self.label_text["debug1"] = LabelText(self.parametri_repeat_elementi, self.fonts["grande"], w=25, h=4, x=69.25, y=40, text="Empty!")
+        self.label_text["debug2"] = LabelText(self.parametri_repeat_elementi, self.fonts["grande"], w=25, h=4, x=69.25, y=50, text="Empty!")
+        self.label_text["debug3"] = LabelText(self.parametri_repeat_elementi, self.fonts["grande"], w=25, h=4, x=69.25, y=60, text="Empty!")
+        self.label_text["debug4"] = LabelText(self.parametri_repeat_elementi, self.fonts["grande"], w=25, h=4, x=69.25, y=70, text="Empty!")
+        self.label_text["debug5"] = LabelText(self.parametri_repeat_elementi, self.fonts["grande"], w=25, h=4, x=69.25, y=80, text="Empty!")
         self.schermo["viewport"] = Schermo(self.parametri_repeat_elementi)
         
 class LabelText:
@@ -205,6 +229,8 @@ class LabelText:
             pygame.draw.rect(self.screen, self.bg, [self.x, self.y, self.w, self.h], border_top_left_radius=10, border_bottom_right_radius=10)
         self.screen.blit(self.font_locale.font_tipo.render(f"{self.text}", True, self.color_text), (self.x + self.w // 2 - len(self.text) * self.font_locale.font_pixel_dim[0] // 2, self.y + self.h // 2 - self.font_locale.font_pixel_dim[1] // 2))
 
+    def assegna_messaggio(self, str: str = "Empty!") -> None:
+        self.text = str
 
 class Schermo:
     def __init__(self, parametri_locali_elementi : list) -> None:
@@ -262,7 +288,33 @@ class Schermo:
         
         for point in render_vertex:
             if not AcceleratedFoo.any_fast(point, self.w/2, self.h/2):
-                pygame.draw.circle(self.schermo, [100, 100, 100], point[:2], 8)
+                pygame.draw.circle(self.schermo, [255, 100, 100], point[:2], 2)
+            
+        self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
+    
+    def renderizza_modello(self, modello: Modello, camera: Camera, logica: Logica, wireframe: bool = True) -> None:
+        '''
+        Viene renderizzato un array di punti nella classe PointCloud
+        '''
+        
+        # aggiunta della 4 coordinata (omogenea) per poter applicare le varie matrici
+        modello.verteces_ori = Mate.add_homogenous(modello.verteces_ori)
+        
+        # applico le varie trasformazioni (SOLO locali all'oggetto) come l'autorotazione
+        modello.applica_rotazioni(autorotation=logica.dt)
+        modello.applica_traslazioni()
+
+        # rimuovo la coordinata oer non fare casini più avanti
+        modello.verteces_ori = Mate.remove_homogenous(modello.verteces_ori)        
+        
+        # uso la camera per proiettare tutto nel suo spazio e poter avere i vertici finali
+        modello.verteces = self.apply_transforms(modello.verteces, camera)
+        
+        triangoli = modello.verteces[modello.links]
+        
+        for triangolo in triangoli:
+            if not AcceleratedFoo.any_fast(triangolo, self.w/2, self.h/2):
+                pygame.draw.polygon(self.schermo, [100, 100, 100], triangolo[:, :2], wireframe)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
     

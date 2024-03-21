@@ -5,31 +5,25 @@ import pygame
 def main():
 
     from _modulo_UI import UI, Logica
-    from _modulo_MATE import Camera, PointCloud, DebugMesh
+    from _modulo_MATE import Camera, PointCloud, DebugMesh, Importer, Modello, Mate
     from _modulo_CRESCITA import Crescita
     
     ui = UI()
     logica = Logica()
     crescita = Crescita()
-
-    # DEBUGGING SESSION
     camera = Camera()
+
+    # import modello di prova    
+    importer = Importer(True, False)
+    path_modello = "MODELS/m_bonsai.obj"
+    importer.modello(path_modello)
     
-    # cubo di prova
-    point_cloud = PointCloud([
-        [-1., -1., -1.],
-        [-1., -1., 1.],
-        [-1., 1., -1.],
-        [-1., 1., 1.],
-        [1., -1., -1.],
-        [1., -1., 1.],
-        [1., 1., -1.],
-        [1., 1., 1.],
-    ])
+    # cloud mesh di prova
+    modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links))
+    point_cloud = PointCloud(importer.verteces)
     
+    # assi e griglie
     debug_mesh = DebugMesh()
-    # DEBUGGING SESSION
-    
     
     while ui.running:
 
@@ -76,17 +70,33 @@ def main():
                 
 
         # UI ----------------------------------------------------------------
-        ui.scena["main"].label_text["title"].disegnami()
+        # set messaggi debug
+        logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
+        logica.messaggio_debug2 = f"Numero di vertici : {len(modello.verteces_ori)}"
+        logica.messaggio_debug3 = f"Path modello : {path_modello}"
+        logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
+        logica.messaggio_debug5 = f"Cam rot : {camera.becche:.1f}, {camera.rollio:.1f}, {camera.imbard:.1f}"
+        
+        ui.aggiorna_messaggi_debug(logica)
+        
+        # disegno i labels
+        [label.disegnami() for indice, label in ui.scena["main"].label_text.items()]
+        
+        # disegno la viewport
         ui.scena["main"].schermo["viewport"].disegnami()
         
+        # calcolo parametri camera
         camera = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
         # point_cloud.verteces_ori = crescita.ciclo_principale()
         
+        # disegno realtà aumentata
         debug_mesh.scelta_debug(True, True)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
+        # disegno punti
+        ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
         ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
         # UI ----------------------------------------------------------------
 
@@ -109,4 +119,4 @@ if __name__ == "__main__":
     
     if active_profile:
         profiler.disable()
-        profiler.dump_stats('_prof.prof')
+        profiler.dump_stats('PROFILATORE/_prof.prof')

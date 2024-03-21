@@ -19,8 +19,12 @@ class Mate:
         ...
         
     @staticmethod
-    def normale_tri_buffer(v: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
-        ...
+    def normale_tri_buffer(v: np.ndarray[np.ndarray[float]], l: np.ndarray[np.ndarray[int]]) -> np.ndarray[np.ndarray[float]]:
+        triangoli = v[l]
+        v0 = triangoli[:,0,:3]
+        v1 = triangoli[:,1,:3]
+        v2 = triangoli[:,2,:3]
+        return np.cross(v1-v0, v2-v0)
     
     @staticmethod
     def centratura(dim: tuple[int]) -> np.ndarray[np.ndarray[float]]:
@@ -84,12 +88,12 @@ class Mate:
         ])
     
     @staticmethod
-    def trasl(array: list | np.ndarray[float]) -> np.ndarray[np.ndarray[float]]:
+    def trasl(array_trasl: list | np.ndarray[float], array_scala: list | np.ndarray[float] = [1, 1, 1]) -> np.ndarray[np.ndarray[float]]:
         return np.array([
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [array[0], array[1], array[2], 1]
+            [array_scala[0], 0, 0, 0],
+            [0, array_scala[1], 0, 0],
+            [0, 0, array_scala[2], 0],
+            [array_trasl[0], array_trasl[1], array_trasl[2], 1]
         ])
 
     @staticmethod
@@ -160,6 +164,35 @@ class AcceleratedFoo:
     def any_fast(v: np.ndarray[float], a: float, b: float) -> bool:
         return np.any((v == a) | (v == b))
 
+class Importer:
+    def __init__(self, use_file = True, use_struttura = False) -> None:
+        self.use_file = use_file
+        self.use_struttura = use_struttura
+
+    def modello(self, nome):
+        if self.use_file:
+            file_path = f'{nome}'
+
+            vertici = []
+            links = []
+
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+
+            for line in lines:
+                if line.startswith('v '):
+                    vertex = [float(x) for x in line.split()[1:]]
+                    vertici.append(vertex)
+                elif line.startswith('f '):
+                    link = [int(x.split('//')[0]) for x in line.split()[1:]]
+                    links.append(link)
+
+            vertici = np.array(vertici)
+            links = np.array(links) - 1
+
+            self.verteces = vertici
+            self.links = links
+
 class Camera:
     def __init__(self) -> None:
         
@@ -214,13 +247,13 @@ class Camera:
 
         # valori default di partenza
 
-        self.pos[0] = 7
-        self.pos[1] = -7
-        self.pos[2] = 5
+        self.pos[0] = 9.2
+        self.pos[1] = -11.1
+        self.pos[2] = 5.7
 
-        self.becche = round(60 / 57.3248, 3)
+        self.becche = 1.4
         self.rollio = 0
-        self.imbard = round(45 / 57.3248, 3)
+        self.imbard = 0.7
 
     
     def rotazione_camera(self) -> None:
@@ -273,13 +306,16 @@ class Modello:
         self.b = b  
         self.i = i
         
-    def applica_rotazioni(self) -> None:
+    def applica_rotazioni(self, autorotation: float | None = None) -> None:
         '''
         Applicazioni rotazioni eulero XYZ
         '''
-        self.verteces = self.verteces_ori @ Mate.rotx(self.b)
-        self.verteces = self.verteces @ Mate.roty(self.r)
-        self.verteces = self.verteces @ Mate.rotz(self.i)
+        
+        if autorotation != None: self.i = autorotation / 300
+        
+        self.verteces = self.verteces_ori @ Mate.rotx(self.b)    
+        self.verteces = self.verteces @ Mate.roty(self.r)   
+        self.verteces = self.verteces @ Mate.rotz(self.i)  
 
     def applica_traslazioni(self) -> None:
         '''
@@ -288,7 +324,7 @@ class Modello:
         self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]))
 
 class PointCloud:
-    def __init__(self, verteces, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0) -> None:
+    def __init__(self, verteces, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
         self.verteces_ori = np.array(verteces)
         self.verteces = self.verteces_ori
         
@@ -298,20 +334,26 @@ class PointCloud:
         self.r = r
         self.b = b  
         self.i = i
+        self.s_x = s_x
+        self.s_y = s_y
+        self.s_z = s_z
         
-    def applica_rotazioni(self, autorotation: float) -> None:
+    def applica_rotazioni(self, autorotation: float | None = None) -> None:
         '''
         Applicazioni rotazioni eulero XYZ
         '''
+        
+        if autorotation != None: self.i = autorotation / 300
+        
         self.verteces = self.verteces_ori @ Mate.rotx(self.b)    
         self.verteces = self.verteces @ Mate.roty(self.r)   
-        self.verteces = self.verteces @ Mate.rotz(autorotation / 300)  
+        self.verteces = self.verteces @ Mate.rotz(self.i)  
 
     def applica_traslazioni(self) -> None:
         '''
         Applicazioni traslazioni
         '''
-        self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]))
+        self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]), np.array([self.s_x, self.s_y, self.s_z]))
 
 
 class DebugMesh:
