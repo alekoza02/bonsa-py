@@ -1,6 +1,8 @@
-if __name__ == "__main__":
-    import pygame
-    from pygame.locals import *
+import cProfile
+from pygame.locals import *
+import pygame
+
+def main():
 
     from _modulo_UI import UI, Logica
     from _modulo_MATE import Camera, PointCloud, DebugMesh
@@ -15,14 +17,14 @@ if __name__ == "__main__":
     
     # cubo di prova
     point_cloud = PointCloud([
-        [-1, -1, -1],
-        [-1, -1, 1],
-        [-1, 1, -1],
-        [-1, 1, 1],
-        [1, -1, -1],
-        [1, -1, 1],
-        [1, 1, -1],
-        [1, 1, 1],
+        [-1., -1., -1.],
+        [-1., -1., 1.],
+        [-1., 1., -1.],
+        [-1., 1., 1.],
+        [1., -1., -1.],
+        [1., -1., 1.],
+        [1., 1., -1.],
+        [1., 1., 1.],
     ])
     
     debug_mesh = DebugMesh()
@@ -91,3 +93,20 @@ if __name__ == "__main__":
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
         ui.mouse_icon(logica)   # lanciato due volte per evitare flickering a bassi FPS
         ui.aggiornamento_e_uscita_check()
+        
+if __name__ == "__main__":
+    
+    active_profile = True
+    
+    if active_profile:
+        profiler = cProfile.Profile()
+        profiler.enable()
+
+    import time
+    start = time.time()
+    main()
+    print(f"Finito in {time.time() - start}")
+    
+    if active_profile:
+        profiler.disable()
+        profiler.dump_stats('_prof.prof')

@@ -66,7 +66,7 @@ class UI:
         self.BG : tuple[int] = (30, 30, 30)
         
         self.clock = pygame.time.Clock()
-        self.max_fps : int = 60
+        self.max_fps : int = 0
         self.current_fps : int = 0
         self.running : int = 1
 
@@ -261,7 +261,7 @@ class Schermo:
         render_vertex = self.apply_transforms(points.verteces, camera)
         
         for point in render_vertex:
-            if not AcceleratedFoo.any_fast(point, self.w//2, self.h//2):
+            if not AcceleratedFoo.any_fast(point, self.w/2, self.h/2):
                 pygame.draw.circle(self.schermo, [100, 100, 100], point[:2], 8)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
@@ -284,14 +284,14 @@ class Schermo:
         if debug.debug_axis:
             colore = [0, 0, 0]
             for indice, linea in enumerate(render_vertex_axis[debug.link_axis]):
-                if not AcceleratedFoo.any_fast(linea, self.w//2, self.h//2):
+                if not AcceleratedFoo.any_fast(linea, self.w/2, self.h/2):
                     colore[indice] = 255
                     pygame.draw.line(self.schermo, colore, linea[0, :2], linea[1, :2], 8)
                     colore[indice] = 0
                 
         if debug.debug_grid:
             for linea in render_vertex_grid[debug.link_grid]:
-                if not AcceleratedFoo.any_fast(linea, self.w//2, self.h//2):
+                if not AcceleratedFoo.any_fast(linea, self.w/2, self.h/2):
                     pygame.draw.line(self.schermo, [100, 100, 100], linea[0, :2], linea[1, :2], 1)
                 
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
