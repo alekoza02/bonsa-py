@@ -24,6 +24,9 @@ class Logica:
         self.ctrl = False
         self.shift = False
         
+        self.scroll_up = 0
+        self.scroll_down = 0
+        
         self.messaggio_debug1: str = "Empty!"
         self.messaggio_debug2: str = "Empty!"
         self.messaggio_debug3: str = "Empty!"
@@ -184,7 +187,7 @@ class DefaultScene:
         self.entrate = {}
         self.radio = {}
         self.scrolls = {}
-        self.schermo = {}
+        self.schermo: dict[str, Schermo] = {}
 
         self.parametri_repeat_elementi : list = [self.madre, self.shift, self.moltiplicatore_x, self.ori_y]
 
@@ -256,16 +259,20 @@ class Schermo:
         self.schermo.fill((148 / 7, 177 / 7, 255 / 7))
         
     
-    def camera_setup(self, camera: Camera, logica: Logica) -> Camera:
+    def camera_setup(self, camera: Camera, logica: Logica) -> tuple[Camera, Logica]:
         '''
         Vengono eseguite 2 sub funzioni in cui:
         Viene ricalcolata la posizione / rotazione / zoom della camera.
         Viene applicata la posizione / rotazione / zoom alla camera 
+        Viene inoltre restituita anche la logica aggiornata (zoom)
         '''
-        camera.aggiorna_attributi(logica.ctrl, logica.shift, logica.dragging_dx, logica.dragging_dy)
+        camera.aggiorna_attributi(logica.ctrl, logica.shift, logica.dragging_dx, logica.dragging_dy, logica.scroll_up, logica.scroll_down)
         camera.rotazione_camera()
         
-        return camera
+        if logica.scroll_down > 0: logica.scroll_down -= 1
+        if logica.scroll_up > 0: logica.scroll_up -= 1 
+        
+        return camera, logica
     
         
     def renderizza_point_cloud(self, points: PointCloud, camera: Camera, logica: Logica) -> None:

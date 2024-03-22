@@ -51,6 +51,10 @@ def main():
                     if event.button == 1:
                         logica.dragging = True
                         logica.dragging_end_pos = logica.mouse_pos
+                    if event.button == 4:
+                        logica.scroll_up += 1
+                    if event.button == 5:
+                        logica.scroll_down += 1
 
                 if event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1: 
@@ -86,7 +90,7 @@ def main():
         ui.scena["main"].schermo["viewport"].disegnami()
         
         # calcolo parametri camera
-        camera = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
+        camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
         # point_cloud.verteces_ori = crescita.ciclo_principale()
@@ -97,7 +101,7 @@ def main():
         
         # disegno punti
         ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
-        ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
+        # ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
@@ -106,7 +110,7 @@ def main():
         
 if __name__ == "__main__":
     
-    active_profile = True
+    active_profile = False
     
     if active_profile:
         profiler = cProfile.Profile()

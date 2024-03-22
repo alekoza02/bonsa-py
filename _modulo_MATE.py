@@ -216,15 +216,15 @@ class Camera:
         # right = verso asse x positivo
         # up = verso asse y positivo
 
-        self.pos = np.array([0.,0.,1.,1])
+        self.pos: np.ndarray[float] = np.array([0.,0.,1.,1])
 
-        self.rig_o = np.array([1.,0.,0.,1])
-        self.ups_o = np.array([0.,1.,0.,1])
-        self.dir_o = np.array([0.,0.,-1.,1])
+        self.rig_o: np.ndarray[float] = np.array([1.,0.,0.,1])
+        self.ups_o: np.ndarray[float] = np.array([0.,1.,0.,1])
+        self.dir_o: np.ndarray[float] = np.array([0.,0.,-1.,1])
 
-        self.rig = np.array([1.,0.,0.,1])
-        self.ups = np.array([0.,1.,0.,1])
-        self.dir = np.array([0.,0.,-1.,1])
+        self.rig: np.ndarray[float] = np.array([1.,0.,0.,1])
+        self.ups: np.ndarray[float] = np.array([0.,1.,0.,1])
+        self.dir: np.ndarray[float] = np.array([0.,0.,-1.,1])
 
         # inclinazioni (sistema di riferimento locale): 
         # rollio -> attorno ad asse y (avvitamento)
@@ -238,6 +238,12 @@ class Camera:
         self.rollio = 0
         self.becche = 0
         self.imbard = 0
+        
+        # i delta angoli sono usati per calcolare lo spostamento relativo per poter orbitare attorno all'oggetto
+        
+        self.delta_becche = 0
+        self.delta_rollio = 0
+        self.delta_imbard = 0
 
         # con il default la camera dovrebbe guardare dall'alto verso il basso avendo:
         # - sulla sua destra l'asse x positivo
@@ -260,6 +266,8 @@ class Camera:
         '''
         Applico le rotazioni in ordine Eulero XYZ ai vari vettori di orientamento della camera
         '''
+        self.pos = self.pos @ Mate.rotz(- self.delta_imbard)
+        
         self.rig = self.rig_o @ Mate.rotx(self.becche)
         self.ups = self.ups_o @ Mate.rotx(self.becche)
         self.dir = self.dir_o @ Mate.rotx(self.becche)
@@ -272,9 +280,10 @@ class Camera:
         self.ups = self.ups @ Mate.rotz(self.imbard)
         self.dir = self.dir @ Mate.rotz(self.imbard)
 
-    def aggiorna_attributi(self, ctrl: bool, shift: bool, dx: float, dy: float) -> None:
+    def aggiorna_attributi(self, ctrl: bool, shift: bool, dx: float, dy: float, zoom_in: float, zoom_out: float) -> None:
         '''
-        Aggiorna gli attributi della camera come pos / rot / zoom
+        Aggiorna gli attributi della camera come pos / rot / zoom.
+        Con le traslazioni viene aggiornato anche il focus attorno al quale avverrà la rotazione
         '''
         
         # se il ctrl è schiacciato -> avverrà zoom
@@ -291,9 +300,19 @@ class Camera:
             self.becche += dy / 1000
             self.rollio += 0
             self.imbard -= dx / 1000
+            
+            self.delta_becche = dy / 1000
+            self.delta_rollio = 0
+            self.delta_imbard = dx / 1000
+
+        # controllo dello zoom con rotella
+        if zoom_in:
+            self.pos[:3] += self.dir[:3]
+        elif zoom_out:
+            self.pos[:3] -= self.dir[:3]
 
 class Modello:
-    def __init__(self, verteces, links, normali, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0) -> None:
+    def __init__(self, verteces, links, normali, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
         self.verteces_ori = verteces
         self.verteces = self.verteces_ori
         self.links = links
@@ -305,6 +324,9 @@ class Modello:
         self.r = r
         self.b = b  
         self.i = i
+        self.s_x = s_x
+        self.s_y = s_y
+        self.s_z = s_z
         
     def applica_rotazioni(self, autorotation: float | None = None) -> None:
         '''
@@ -321,7 +343,7 @@ class Modello:
         '''
         Applicazioni traslazioni
         '''
-        self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]))
+        self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]), np.array([self.s_x, self.s_y, self.s_z]))
 
 class PointCloud:
     def __init__(self, verteces, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
