@@ -14,13 +14,13 @@ def main():
     camera = Camera()
 
     # import modello di prova    
-    importer = Importer(True, False)
-    path_modello = "MODELS/m_bonsai.obj"
-    importer.modello(path_modello)
+    # importer = Importer(True, False)
+    # path_modello = "MODELS/m_ban.obj"
+    # importer.modello(path_modello)
     
     # cloud mesh di prova
-    modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links))
-    point_cloud = PointCloud(importer.verteces)
+    # modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links))
+    # point_cloud = PointCloud(importer.verteces)
     
     # assi e griglie
     debug_mesh = DebugMesh()
@@ -48,12 +48,12 @@ def main():
         for event in eventi_in_corso:
                 # MOUSE
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
+                    if event.button == 2:
                         logica.dragging = True
                         logica.dragging_end_pos = logica.mouse_pos
 
                 if event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1: 
+                    if event.button == 2: 
                         logica.dragging = False
                         logica.dragging_end_pos = logica.mouse_pos
 
@@ -89,14 +89,14 @@ def main():
         camera = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
-        # point_cloud.verteces_ori = crescita.ciclo_principale()
+        point_cloud.verteces_ori = crescita.ciclo_principale()
         
         # disegno realtà aumentata
         debug_mesh.scelta_debug(True, True)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
         # disegno punti
-        ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
+        # ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
         ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
         # UI ----------------------------------------------------------------
 
