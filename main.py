@@ -14,13 +14,13 @@ def main():
     camera = Camera()
 
     # import modello di prova    
-    # importer = Importer(True, False)
-    # path_modello = "MODELS/m_ban.obj"
-    # importer.modello(path_modello)
+    importer = Importer(True, False)
+    path_modello = "MODELS/m_ban.obj"
+    importer.modello(path_modello)
     
     # cloud mesh di prova
-    # modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links))
-    # point_cloud = PointCloud(importer.verteces)
+    modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links))
+    point_cloud = PointCloud(importer.verteces)
     
     # assi e griglie
     debug_mesh = DebugMesh()
