@@ -6,11 +6,11 @@ def main():
 
     from _modulo_UI import UI, Logica
     from _modulo_MATE import Camera, PointCloud, DebugMesh, Importer, Modello, Mate
-    from _modulo_CRESCITA import Crescita
+    from _modulo_CRESCITA import Albero
     
     ui = UI()
     logica = Logica()
-    crescita = Crescita()
+    albero = Albero()
     camera = Camera()
 
     # import modello di prova    
@@ -93,7 +93,7 @@ def main():
         camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
-        point_cloud.verteces_ori = crescita.ciclo_principale()
+        point_cloud.verteces_ori = albero.crescita()
         
         # disegno realtà aumentata
         debug_mesh.scelta_debug(True, True)
