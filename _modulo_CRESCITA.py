@@ -59,8 +59,8 @@ class Albero:
         
         self.iterazioni += 1
        
-        if len(self.rami) > 2000:
-            return
+        if len(self.rami) > 3000:
+            return self.nodi,self.rami
 
 
         # STEP 1 - CRESCITA IN LARGHEZZA
@@ -72,17 +72,17 @@ class Albero:
 
         # costruzione array lunghezze dei rami (a_lung) e allungamenti (a_allu)
         # a_lung,a_allu = ricalcolo_array_allu(self.nodi,self.rami)
-        a_lung,a_allu = ricalcolo_array_allu()
+        self.a_lung, self.a_allu = self.ricalcolo_array_allu()
  
         # allungo rami con lunghezza < 10
-        self.nodi[self.rami[a_lung < 10,self.C_DEST].astype(np.int32)] += a_allu[a_lung < 10]
+        self.nodi[self.rami[self.a_lung < 10,self.C_DEST].astype(np.int32)] += self.a_allu[self.a_lung < 10]
 
 
         # STEP 3 - CREAZIONE NUOVI SEGMENTI TERMINALI
         #  Creazione nuovi segmenti che sono la prosecuzione dei rami terminali
         #  I requisiti per far iniziare un nuovo ramo sono: lunghezza ramo padre > 10 e numero gemme = 0 
         # a_filtro, a_rand = calcolo_prosecuzione_rami(rami, a_lung)
-        a_filtro, a_rand = calcolo_prosecuzione_rami()
+        a_filtro, a_rand = self.calcolo_prosecuzione_rami()
         
         # Se le condizioni di spawn nuovi rami esistono almeno per un nodo, creo il nuovo ramo
         if a_filtro.any():
@@ -93,7 +93,7 @@ class Albero:
             # e un fattore casuale sulle coordinate x e y (z è fissa = "alto")
 
             # Estendo array degli allungamenti per applicarlo ai nodi (nodi=rami+1)
-            a_allu_esteso = np.vstack((np.array([[0.,0.,0.]]),a_allu))
+            a_allu_esteso = np.vstack((np.array([[0.,0.,0.]]),self.a_allu))
 
             # Creo i nuovi nodi
             nuovi_nodi = self.nodi[ a_filtro ] + a_allu_esteso[ a_filtro ] + a_rand[ a_filtro ]
@@ -101,7 +101,7 @@ class Albero:
             # 3.2) NUOVI RAMI
 
             # a_indici,a_gemme = ricalcolo_array_gemme (self.rami)
-            a_indici,a_gemme = ricalcolo_array_gemme()
+            a_indici,a_gemme = self.ricalcolo_array_gemme()
             a_orig = np.array([a_indici[a_filtro]])
             a_dest = np.array([np.arange(len(self.nodi),len(self.nodi)+len(nuovi_nodi))])
             a_ordini = np.array(self.rami[a_indici[a_filtro].astype(int)-1][:,self.C_ORDINE])
@@ -120,7 +120,7 @@ class Albero:
 
         # Aggiornamento gemme
         # a_indici,a_gemme = ricalcolo_array_gemme (rami)
-        a_indici,a_gemme = ricalcolo_array_gemme()
+        a_indici,a_gemme = self.ricalcolo_array_gemme()
 
         # Compongo l'array di sequenze di segmenti (rami) che vanno dalle punte alle biforcazioni
         l_rametti=[]
@@ -163,7 +163,7 @@ class Albero:
 
             # costruzione array lunghezze dei rami (a_lung) e allungamenti (a_allu)
             # a_lung,a_allu = ricalcolo_array_allu(nodi,rami)
-            a_lung,a_allu = ricalcolo_array_allu()
+            a_lung,a_allu = self.ricalcolo_array_allu()
 
             # Composizione array dei nodi di origine partendo dai nodi di destinazione
             ai_nodi_prec = self.rami[ai_nodi_scelti-1][:,self.C_ORIG].astype(np.int32)
@@ -171,7 +171,7 @@ class Albero:
 
             # Con nodi di origine e destinazione posso calcolare gli angoli del ramo
             # cart_to_sphere restituisce ro(lunghezza) theta(angolo orizzontale) e phi(angolo verticale)
-            a_angoli_oriz_p,a_angoli_vert_p = cart_to_sphere(a_nodi_prec,a_nodi_scelti)[1:]
+            a_angoli_oriz_p,a_angoli_vert_p = Albero.cart_to_sphere(a_nodi_prec,a_nodi_scelti)[1:]
 
 
             # CALCOLO ARRAY ANGOLI ORIZZONTALI 
@@ -245,7 +245,7 @@ class Albero:
                 ai_nodi_scelti, 
                 np.arange(len(self.nodi),len(self.nodi)+len(a_nuovi_nodi)), 
                 a_ordini,
-                np.full(len(a_nuovi_nodi),self.spess_iniz))).T
+                np.full(len(a_nuovi_nodi),self.C_spess_iniz))).T
 
             self.rami = np.vstack((self.rami,a_nuovi_rami))
             self.nodi = np.vstack((self.nodi,a_nuovi_nodi))
@@ -265,7 +265,7 @@ class Albero:
         # numero_rami.value = len(rami)
         # spessori_rami[:len(rami)]=rami[:,3]
         # time.sleep(.01)
-        return self.nodi
+        return self.nodi,self.rami
 
 
 
@@ -300,64 +300,63 @@ class Albero:
         # allungamento proporzionale alla crescita_a (alterazione temporale)
         # allungamento proporzionale all'altezza dal suolo (1/100)
 
-        a_allu = a_diff / a_lung[:,None] / rami[:,C_ORDINE][:,None] * crescita_a
-        a_allu *= (1+ nodi[rami[:,C_DEST].astype(int),Z][:,None] /1000) 
+        a_allu = a_diff / a_lung[:,None] / self.rami[:,C_ORDINE][:,None] * self.crescita_a
+        a_allu *= (1+ self.nodi[self.rami[:,C_DEST].astype(int),Z][:,None] /1000) 
         #a_allu[:,2] -= .0001 
 
         return a_lung,a_allu 
 
-def ricalcolo_array_gemme(rami):
+    def ricalcolo_array_gemme(self):
 
-    # Questa funzione ricalcola gli array:
-    # - a_indici, a_gemme --> indici dei nodi e gemme dei nodi
-    # TODO: forse è il caso di fonderli in un array unico?
- 
-    C_ORIG=0
-    C_DEST=1
+        # Questa funzione ricalcola gli array:
+        # - a_indici, a_gemme --> indici dei nodi e gemme dei nodi
+        # TODO: forse è il caso di fonderli in un array unico?
+    
+        C_ORIG=0
+        C_DEST=1
 
-    # Conteggio rami collegati ad ogni nodo (conto anche il ramo "padre")
-    # Il numero di gemme esatto (se servisse) è n-gemme -1
-    #
-    # Sommo tutti i nodi che trovo sia come origine che come destinazione
-    # fondendo colonne 0 e 1 (C_ORIG e C_DEST)
-    # Faccio la unique+return_counts per contarli
-    a_indici,a_gemme = np.unique(np.append(rami[:,C_ORIG], rami[:,C_DEST]),return_counts=True)
+        # Conteggio rami collegati ad ogni nodo (conto anche il ramo "padre")
+        # Il numero di gemme esatto (se servisse) è n-gemme -1
+        #
+        # Sommo tutti i nodi che trovo sia come origine che come destinazione
+        # fondendo colonne 0 e 1 (C_ORIG e C_DEST)
+        # Faccio la unique+return_counts per contarli
+        a_indici,a_gemme = np.unique(np.append(self.rami[:,C_ORIG], self.rami[:,C_DEST]),return_counts=True)
 
-    return a_indici,a_gemme
+        return a_indici,a_gemme
 
-def calcolo_prosecuzione_rami(rami, a_lung):
+    def calcolo_prosecuzione_rami(self):
 
-    # Questa funzione calcola gli array:
-    # - a_filtro --> filtro da applicare all'array nodi per ottenere quelli senza gemme appartenenti a rami lunghi
-    # - a_rand --> array di valori random da applicare alla crescita dei nuovi rami
-    # TODO: spostare il calcolo di a_rand fuori da questa funzione? Sembra poco attinente...
- 
-    C_DEST=1
-    global alto
+        # Questa funzione calcola gli array:
+        # - a_filtro --> filtro da applicare all'array nodi per ottenere quelli senza gemme appartenenti a rami lunghi
+        # - a_rand --> array di valori random da applicare alla crescita dei nuovi rami
+        # TODO: spostare il calcolo di a_rand fuori da questa funzione? Sembra poco attinente...
+    
+        C_DEST=1
 
-    # Aggiorno il conteggio delle gemme
-    a_indici,a_gemme = ricalcolo_array_gemme (rami)
+        # Aggiorno il conteggio delle gemme
+        a_indici,a_gemme = self.ricalcolo_array_gemme ()
 
-    # Combino le due condizioni:
-    # 1) nodi con gemme=1 (array completo di booleani, es.: [ True, False, False, True, ...])
-    # 2) nodi terminali di rami lunghi (array parziale di indici di nodi, es.: [ 3, 5, 17] )
+        # Combino le due condizioni:
+        # 1) nodi con gemme=1 (array completo di booleani, es.: [ True, False, False, True, ...])
+        # 2) nodi terminali di rami lunghi (array parziale di indici di nodi, es.: [ 3, 5, 17] )
 
-    # Array "filtro"  
-    a_filtro_gemme = a_gemme == 1
+        # Array "filtro"  
+        a_filtro_gemme = a_gemme == 1
 
-    # Array "filtro" contenente gli indici dei nodi terminali di rami lunghi
-    a_filtro_lunghi = rami[a_lung > 10,C_DEST].astype(np.int32)
+        # Array "filtro" contenente gli indici dei nodi terminali di rami lunghi
+        a_filtro_lunghi = self.rami[self.a_lung > 10,C_DEST].astype(np.int32)
 
-    # a_filtro_lunghi --> array indici dei nodi teminali di rami lunghi
-    # a_filtro_gemme  
-    a_filtro = a_filtro_lunghi[a_filtro_gemme[a_filtro_lunghi]]
+        # a_filtro_lunghi --> array indici dei nodi teminali di rami lunghi
+        # a_filtro_gemme  
+        a_filtro = a_filtro_lunghi[a_filtro_gemme[a_filtro_lunghi]]
 
-    # Array di variazione casuale su x e y, mentre su z è fissa (alto)
-    a_rand = np.random.uniform(-0.001, 0.001, size=(len(a_gemme), 3))
-    a_rand[:, 2] = alto
+        # Array di variazione casuale su x e y, mentre su z è fissa (alto)
+        a_rand = np.random.uniform(-0.001, 0.001, size=(len(a_gemme), 3))
+        a_rand[:, 2] = self.alto
 
 
-    #return a_gemme, a_indici, a_filtro, a_rand
-    return a_filtro, a_rand
+        #return a_gemme, a_indici, a_filtro, a_rand
+        return a_filtro, a_rand
 
 

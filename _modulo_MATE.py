@@ -353,7 +353,7 @@ class PointCloud:
     def __init__(self, verteces, links = None, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
         self.verteces_ori = np.array(verteces)
         self.verteces = self.verteces_ori
-        self.links = np.array(links)[:, :2]
+        self.links: np.ndarray = links[:, :2] if links != None else None
         
         self.x = x
         self.y = y 

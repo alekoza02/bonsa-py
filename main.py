@@ -82,7 +82,7 @@ def main(config: configparser):
         # UI ----------------------------------------------------------------
         # set messaggi debug
         logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
-        logica.messaggio_debug2 = f"Numero di vertici : {len(modello.verteces_ori)}"
+        # logica.messaggio_debug2 = f"Numero di vertici : {len(modello.verteces_ori)}"
         logica.messaggio_debug3 = f"Path modello : {path_modello}"
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
         logica.messaggio_debug5 = f"Cam rot : {camera.becche:.1f}, {camera.rollio:.1f}, {camera.imbard:.1f}"
@@ -99,8 +99,10 @@ def main(config: configparser):
         camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
-        point_cloud.verteces_ori = albero.crescita()
-        
+        ris_crescita = albero.crescita()
+        point_cloud.verteces_ori = ris_crescita[0] / 10
+        point_cloud.links = ris_crescita[1].astype(int)
+
         # disegno realtà aumentata
         debug_mesh.scelta_debug(True, True)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
@@ -109,7 +111,7 @@ def main(config: configparser):
         if _modello_or_cloud == "modello":
             ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
         elif _modello_or_cloud == "points":
-            ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=False)
+            ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=True)
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
