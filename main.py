@@ -1,26 +1,30 @@
 import cProfile
 from pygame.locals import *
 import pygame
-
-def main():
+import configparser
+    
+def main(config: configparser):
+    
+    _tasto_navigazione = int(config.get('Default', 'tasto_navigazione'))
+    _modello_or_cloud = config.get('Default', 'modello_or_cloud')
+    _modello_default = config.get('Default', 'modello_default')
 
     from _modulo_UI import UI, Logica
     from _modulo_MATE import Camera, PointCloud, DebugMesh, Importer, Modello, Mate
-    from _modulo_CRESCITA import Crescita
     
     ui = UI()
     logica = Logica()
-    crescita = Crescita()
     camera = Camera()
 
     # import modello di prova    
     importer = Importer(True, False)
-    path_modello = "MODELS/m_ban.obj"
+    path_modello = _modello_default
     importer.modello(path_modello)
     
-    # cloud mesh di prova
-    modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links))
-    point_cloud = PointCloud(importer.verteces)
+    if _modello_or_cloud == "modello":
+        modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links), s_x=5, s_y=5, s_z=5)
+    elif _modello_or_cloud == "points":
+        point_cloud = PointCloud(importer.verteces)
     
     # assi e griglie
     debug_mesh = DebugMesh()
@@ -48,7 +52,7 @@ def main():
         for event in eventi_in_corso:
                 # MOUSE
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 2:
+                    if event.button == _tasto_navigazione:
                         logica.dragging = True
                         logica.dragging_end_pos = logica.mouse_pos
                     if event.button == 4:
@@ -57,7 +61,7 @@ def main():
                         logica.scroll_down += 1
 
                 if event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 2: 
+                    if event.button == _tasto_navigazione: 
                         logica.dragging = False
                         logica.dragging_end_pos = logica.mouse_pos
 
@@ -93,15 +97,17 @@ def main():
         camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
-        point_cloud.verteces_ori = crescita.ciclo_principale()
+        # point_cloud.verteces_ori = crescita.ciclo_principale()
         
         # disegno realtà aumentata
         debug_mesh.scelta_debug(True, True)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
         # disegno punti
-        ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
-        # ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica)
+        if _modello_or_cloud == "modello":
+            ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
+        elif _modello_or_cloud == "points":
+            ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=False)
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
@@ -110,17 +116,20 @@ def main():
         
 if __name__ == "__main__":
     
-    active_profile = False
+    config = configparser.ConfigParser()
+    config.read('./DATA/settings.ini')
     
-    if active_profile:
+    _profiler = bool(config.get('Default', 'profiler'))
+    
+    if _profiler:
         profiler = cProfile.Profile()
         profiler.enable()
 
     import time
     start = time.time()
-    main()
+    main(config)
     print(f"Finito in {time.time() - start}")
     
-    if active_profile:
+    if _profiler:
         profiler.disable()
         profiler.dump_stats('PROFILATORE/_prof.prof')
