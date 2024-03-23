@@ -7,16 +7,12 @@ class Mate:
         pass
     
     @staticmethod
-    def versore(v: np.ndarray[float]) -> np.ndarray[float]:
-        ...
-        
-    @staticmethod
     def modulo(v: np.ndarray[float]) -> float:
-        ...
+        return np.linalg.norm(v)
         
     @staticmethod
-    def normale(v: np.ndarray[float]) -> np.ndarray[float]:
-        ...
+    def versore(v: np.ndarray[float]) -> np.ndarray[float]:
+        return v / Mate.modulo(v)
         
     @staticmethod
     def normale_tri_buffer(v: np.ndarray[np.ndarray[float]], l: np.ndarray[np.ndarray[int]]) -> np.ndarray[np.ndarray[float]]:
@@ -119,6 +115,8 @@ class Mate:
         ris[(ris < -2) | (ris > 2)] = 0
         return ris
     
+    
+    @staticmethod
     def add_homogenous(v: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
         '''
         Aggiungo la 4 coordinata alla fine dei vettori con 3 coordinate. Supporto strutture come triangoli e liste di vettori
@@ -138,6 +136,7 @@ class Mate:
             raise IndexError(err_msg)
             
         return ones
+    
     
     @staticmethod
     def remove_homogenous(v: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
@@ -197,8 +196,6 @@ class Importer:
 class Camera:
     def __init__(self) -> None:
         
-        # TODO -> implementa rollio camera
-
         # REMEMBER -> PYGAME VISUALIZZA I PUNTI DA IN ALTO A SINISTRA
         
         # O ---------->
@@ -213,6 +210,7 @@ class Camera:
 
         # default:
         # pos = asse z positivo
+        # focus = punto di orbita per le rotazioni
         # front = verso asse z negativo
         # right = verso asse x positivo
         # up = verso asse y positivo
@@ -268,8 +266,6 @@ class Camera:
         '''
         Applico le rotazioni in ordine Eulero XYZ ai vari vettori di orientamento della camera
         '''
-        self.pos = (self.pos - self.focus) @ Mate.rotz(- self.delta_imbard) + self.focus
-        
         self.rig = self.rig_o @ Mate.rotx(self.becche)
         self.ups = self.ups_o @ Mate.rotx(self.becche)
         self.dir = self.dir_o @ Mate.rotx(self.becche)
@@ -281,6 +277,12 @@ class Camera:
         self.rig = self.rig @ Mate.rotz(self.imbard)
         self.ups = self.ups @ Mate.rotz(self.imbard)
         self.dir = self.dir @ Mate.rotz(self.imbard)
+
+        self.pos -= self.focus
+        self.pos = self.pos @ Mate.rotz(self.imbard - self.delta_imbard)
+        # self.pos = self.pos @ Mate.rotx( self.delta_becche)
+        self.pos = self.pos @ Mate.rotz(- self.imbard)
+        self.pos += self.focus
 
     def aggiorna_attributi(self, ctrl: bool, shift: bool, dx: float, dy: float, zoom_in: float, zoom_out: float) -> None:
         '''
@@ -301,12 +303,13 @@ class Camera:
 
         # se non è schiacciato nulla -> avverrà rotazione
         else:
-            self.becche += dy / 1000
-            self.rollio += 0
-            self.imbard -= dx / 1000
-            
+            self.becche -= dy / 1000
             self.delta_becche = dy / 1000
+            
+            self.rollio -= 0
             self.delta_rollio = 0
+            
+            self.imbard -= dx / 1000
             self.delta_imbard = dx / 1000
 
         # controllo dello zoom con rotella
