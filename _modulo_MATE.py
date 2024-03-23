@@ -139,6 +139,7 @@ class Mate:
             
         return ones
     
+    @staticmethod
     def remove_homogenous(v: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
         '''
         Rimuovo la 4 coordinata alla fine dei vettori con 4 coordinate. Supporto strutture come triangoli e liste di vettori
@@ -217,6 +218,7 @@ class Camera:
         # up = verso asse y positivo
 
         self.pos: np.ndarray[float] = np.array([0.,0.,1.,1])
+        self.focus: np.ndarray[float] = np.array([0.,0.,0.,1])
 
         self.rig_o: np.ndarray[float] = np.array([1.,0.,0.,1])
         self.ups_o: np.ndarray[float] = np.array([0.,1.,0.,1])
@@ -266,7 +268,7 @@ class Camera:
         '''
         Applico le rotazioni in ordine Eulero XYZ ai vari vettori di orientamento della camera
         '''
-        self.pos = self.pos @ Mate.rotz(- self.delta_imbard)
+        self.pos = (self.pos - self.focus) @ Mate.rotz(- self.delta_imbard) + self.focus
         
         self.rig = self.rig_o @ Mate.rotx(self.becche)
         self.ups = self.ups_o @ Mate.rotx(self.becche)
@@ -292,6 +294,8 @@ class Camera:
 
         # se lo shift è schiacciato -> avverrà traslazione
         elif shift:
+            self.focus[:3] -= self.rig[:3] * dx / 100
+            self.focus[:3] -= self.ups[:3] * dy / 100
             self.pos[:3] -= self.rig[:3] * dx / 100
             self.pos[:3] -= self.ups[:3] * dy / 100
 
@@ -346,9 +350,10 @@ class Modello:
         self.verteces = self.verteces @ Mate.trasl(np.array([self.x, self.y, self.z]), np.array([self.s_x, self.s_y, self.s_z]))
 
 class PointCloud:
-    def __init__(self, verteces, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
+    def __init__(self, verteces, links = None, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
         self.verteces_ori = np.array(verteces)
         self.verteces = self.verteces_ori
+        self.links = np.array(links)[:, :2]
         
         self.x = x
         self.y = y 

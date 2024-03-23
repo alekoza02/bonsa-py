@@ -275,7 +275,7 @@ class Schermo:
         return camera, logica
     
         
-    def renderizza_point_cloud(self, points: PointCloud, camera: Camera, logica: Logica) -> None:
+    def renderizza_point_cloud(self, points: PointCloud, camera: Camera, logica: Logica, linked: bool = False) -> None:
         '''
         Viene renderizzato un array di punti nella classe PointCloud
         '''
@@ -293,9 +293,12 @@ class Schermo:
         # uso la camera per proiettare tutto nel suo spazio e poter avere i vertici finali
         render_vertex = self.apply_transforms(points.verteces, camera)
         
-        for point in render_vertex:
-            if not AcceleratedFoo.any_fast(point, self.w/2, self.h/2):
-                pygame.draw.circle(self.schermo, [255, 100, 100], point[:2], 2)
+        for struct in render_vertex[points.links]:
+            if not AcceleratedFoo.any_fast(struct, self.w/2, self.h/2):
+                for point in struct:
+                    pygame.draw.circle(self.schermo, [255, 100, 100], point[:2], 2)
+                if linked:
+                    pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
     
