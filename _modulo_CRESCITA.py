@@ -32,18 +32,18 @@ class Albero:
         # crescita in larghezza
         self.crescita_l = .0001
         # tendenza verso l'alto dei rami nuovi
-        self.alto = .0002
+        self.alto = .01
+        # tendenza verso il basso dei rami vecchi
+        self.basso = -.001
         # massima variazione di angolo iniziale rispetto al ramo padre
         # self.angolo_iniziale = np.pi/8
         # simmetria (gemma doppia)
-        self.simmetria = True
+        self.simmetria = False
 
         # interazioni di crescita
         self.iterazioni = 0
 
 
-
-    #def main_cresc(punti_multi, collegamenti, uscita, numero_rami,spessori_rami, debug, gaussiana_std, gaussiana_mean):
     def crescita(self):
 
     
@@ -59,19 +59,28 @@ class Albero:
         
         self.iterazioni += 1
        
-        if len(self.rami) > 3000:
+        if len(self.rami) > 5000:
             return self.nodi,self.rami
 
 
-        # STEP 1 - CRESCITA IN LARGHEZZA
+        # STEP 1 - CRESCITA GENERALE DI TUTTI I SEGMENTI
 
         # Tutti i segmenti crescono in larghezza ad ogni ciclo
         self.rami[:,self.C_SPESS] += self.crescita_l
 
+        # Tendenza dei rami a piegarsi sotto il loro stesso peso
+        # SBAGLIATO -- RISCRIVERE MODIFICANDO L'ANGOLO DEL RAMO, NON LA POSIZIONE
+        # self.nodi[1:,self.C_Z] += self.basso   
+        
+        
+        self.abbassa_ramo(self.rami)
+        
+
+
+
         # STEP 2 - ALLUNGAMENTO RAMI TERMINALI  (quelli di lunghezza inferiore a 10)
 
         # costruzione array lunghezze dei rami (a_lung) e allungamenti (a_allu)
-        # a_lung,a_allu = ricalcolo_array_allu(self.nodi,self.rami)
         self.a_lung, self.a_allu = self.ricalcolo_array_allu()
  
         # allungo rami con lunghezza < 10
@@ -81,7 +90,6 @@ class Albero:
         # STEP 3 - CREAZIONE NUOVI SEGMENTI TERMINALI
         #  Creazione nuovi segmenti che sono la prosecuzione dei rami terminali
         #  I requisiti per far iniziare un nuovo ramo sono: lunghezza ramo padre > 10 e numero gemme = 0 
-        # a_filtro, a_rand = calcolo_prosecuzione_rami(rami, a_lung)
         a_filtro, a_rand = self.calcolo_prosecuzione_rami()
         
         # Se le condizioni di spawn nuovi rami esistono almeno per un nodo, creo il nuovo ramo
@@ -173,62 +181,67 @@ class Albero:
             # cart_to_sphere restituisce ro(lunghezza) theta(angolo orizzontale) e phi(angolo verticale)
             a_angoli_oriz_p,a_angoli_vert_p = Albero.cart_to_sphere(a_nodi_prec,a_nodi_scelti)[1:]
 
+            if not self.simmetria:
 
-            # CALCOLO ARRAY ANGOLI ORIZZONTALI 
-            # calcolo angoli massimi di deviazione dal padre (dipende dalla verticalità del padre)
-            a_est_angoli = a_angoli_vert_p*4
-            # estensione massima angolo orizzontale dei figli = angolo verticale del padre * 4 (minimo: pi)
-            a_est_angoli[a_est_angoli < np.pi] = np.pi
-            # calcolo deviazione random
-            a_diff_angoli =  (np.random.random(len(a_angoli_oriz_p))-.5)*a_est_angoli     
-            # calcolo angolo finale (angolo orizzontale del padre + deviazione random)
-            a_angoli_oriz = a_angoli_oriz_p + a_diff_angoli
+                # Se lo spawn dei rami è asimmetrico ne gemmo solo uno in maniera casuale
 
-            # angoli verticali: da pi/4 a pi/4 + pi/8
-            a_angoli_vert = np.random.random(len(a_angoli_vert_p))*np.pi/8 +np.pi/4
+                # calcolo angoli massimi di deviazione dal padre (dipende dalla verticalità del padre)
+                a_est_angoli = a_angoli_vert_p*4
+                # estensione massima angolo orizzontale dei figli = angolo verticale del padre * 4 (minimo: pi)
+                a_est_angoli[a_est_angoli < np.pi] = np.pi
+                # calcolo deviazione random
+                a_diff_angoli =  (np.random.random(len(a_angoli_oriz_p))-.5)*a_est_angoli     
+                # calcolo angolo finale (angolo orizzontale del padre + deviazione random)
+                a_angoli_oriz = a_angoli_oriz_p + a_diff_angoli
 
-            
-            a_nuovi_nodi = a_nodi_scelti + np.vstack((
-                np.cos(a_angoli_oriz),
-                np.sin(a_angoli_oriz),
-                np.sin(a_angoli_vert))).T
+                # angoli verticali: da pi/4 a pi/4 + pi/8
+                a_angoli_vert = np.random.random(len(a_angoli_vert_p))*np.pi/8 +np.pi/4
 
-            # se spawn simmetrico gemmo doppio
+                
+                a_nuovi_nodi = a_nodi_scelti + np.vstack((
+                    np.cos(a_angoli_oriz),
+                    np.sin(a_angoli_oriz),
+                    np.sin(a_angoli_vert))).T
+
+            # se lo spawn è simmetrico gemmo doppio
             if self.simmetria:
 
-
                 # vecchio metodo per angoli dei rami gemelli
-                a_angoli_oriz2 = a_angoli_oriz_p - a_diff_angoli
+                # a_angoli_oriz2 = a_angoli_oriz_p - a_diff_angoli
 
                 ################################################################################
                 # NUOVO ALGORITMO PER SIMMETRICI: 
-                # se debole/media/medio-forte verticalità del padre 
+                # se debole/media verticalità del padre (DEFAULT)
                 #       --> stesso angolo verticale del padre
                 #       --> angolo orizzontale fisso (es.: +45 e -45 rispetto al padre)
-                # se forte verticalità del padre                   
+                # se forte verticalità del padre  (CORREZIONE)                 
                 #       --> angolo verticale fisso (es.: +45 e -45 dal padre)
                 #       --> angolo orizzontale: il primo random (e +180), i successivi perpendicolari al precedente 
                 # 
                 ################################################################################
+                
+                a_angoli_vert = a_angoli_vert_p
+                a_angoli_vert2 = a_angoli_vert_p
+                a_angoli_oriz = a_angoli_oriz_p + np.pi /4
+                a_angoli_oriz2 = a_angoli_oriz_p - np.pi /4
+                
+                a_angoli_vert[a_angoli_vert_p > np.pi/3] += np.pi/4
+                a_angoli_vert2[a_angoli_vert_p > np.pi/3] -= np.pi/4
+                
+                #a_angoli_oriz = angoli precedenti +90  # IMPLEMENTARE
+                a_angoli_oriz = a_angoli_oriz_p + np.pi /2
+                a_angoli_oriz2 = a_angoli_oriz_p - np.pi /2
+                
+                a_nuovi_nodi = a_nodi_scelti + np.vstack((
+                    np.cos(a_angoli_oriz),
+                    np.sin(a_angoli_oriz),
+                    np.sin(a_angoli_vert))).T
 
-                #a_angoli_vert = a_angoli_vert_p
-                #a_angoli_vert2 = a_angoli_vert_p
-                #a_angoli_oriz = a_angoli_oriz_p + np.pi /4
-                #a_angoli_oriz2 = a_angoli_oriz_p - np.pi /4
-                
-                #a_angoli_vert[np.abs(a_angoli_vert_p - np.pi) < .1] = a_angoli_vert_p+np.pi/4
-                #a_angoli_vert2[np.abs(a_angoli_vert_p - np.pi) < .1] = a_angoli_vert_p-np.pi/4
-                
-                #a_angoli_oriz = angoli precedenti +90
-                
-                
-                
-                
-                
+
                 a_nuovi_nodi2 = a_nodi_scelti + np.vstack((
                     np.cos(a_angoli_oriz2),
                     np.sin(a_angoli_oriz2),
-                    np.sin(a_angoli_vert))).T
+                    np.sin(a_angoli_vert2))).T
 
                 a_nuovi_nodi = np.vstack((a_nuovi_nodi,a_nuovi_nodi2))
             
@@ -251,20 +264,7 @@ class Albero:
             self.nodi = np.vstack((self.nodi,a_nuovi_nodi))
                 
 
-        # PROSSIMI STEP -----
-
-        # AGGIUNGERE PIEGAMENTO VERSO IL BASSO NEL TEMPO
-        #nodi[1:,C_Z] -= .000001
-
                         
-        # FINE LOGICA DI CRESCITA---------------------------------------------------------------------------------------
-        # for i, punto_ciclo in enumerate(nodi):
-            # punti_multi[i * 3:(i + 1) * 3] = punto_ciclo
-        # transfer = list(map(int,np.ravel(rami[:,:2])))
-        # collegamenti[:len(transfer)] = transfer
-        # numero_rami.value = len(rami)
-        # spessori_rami[:len(rami)]=rami[:,3]
-        # time.sleep(.01)
         return self.nodi,self.rami
 
 
@@ -358,5 +358,14 @@ class Albero:
 
         #return a_gemme, a_indici, a_filtro, a_rand
         return a_filtro, a_rand
+
+    def abbassa_ramo(self,elenco_rami):
+        self.nodi[elenco_rami[:,self.C_DEST].astype(int),self.C_Z] += self.basso
+    
+        # I rami successivi sono quelli che hanno come origine i nodi di destinazione dei rami attuali
+        rami_successivi=self.rami[self.rami[:,self.C_ORIG] == elenco_rami[:,self.C_DEST]]
+
+        if rami_successivi:
+            self.abbassa_nodo(self,rami_successivi)
 
 
