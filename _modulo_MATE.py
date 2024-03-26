@@ -256,7 +256,7 @@ class Camera:
         self.pos[0] = 9.2
         self.pos[1] = -11.1
         self.pos[2] = 5.7
-
+        
         self.becche = 1.4
         self.rollio = 0
         self.imbard = 0.7
@@ -280,6 +280,7 @@ class Camera:
 
         self.pos -= self.focus
         self.pos = self.pos @ Mate.rotz(self.imbard - self.delta_imbard)
+        # print(self.pos)
         # self.pos = self.pos @ Mate.rotx( self.delta_becche)
         self.pos = self.pos @ Mate.rotz(- self.imbard)
         self.pos += self.focus
@@ -296,8 +297,8 @@ class Camera:
 
         # se lo shift è schiacciato -> avverrà traslazione
         elif shift:
-            self.focus[:3] -= self.rig[:3] * dx / 100
-            self.focus[:3] -= self.ups[:3] * dy / 100
+            # self.focus[:3] -= self.rig[:3] * dx / 100
+            # self.focus[:3] -= self.ups[:3] * dy / 100
             self.pos[:3] -= self.rig[:3] * dx / 100
             self.pos[:3] -= self.ups[:3] * dy / 100
 

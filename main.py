@@ -8,6 +8,8 @@ def main(config: configparser):
     _tasto_navigazione = int(config.get('Default', 'tasto_navigazione'))
     _modello_or_cloud = config.get('Default', 'modello_or_cloud')
     _modello_default = config.get('Default', 'modello_default')
+    _debug_mesh_grid = eval(config.get('Default', 'debug_mesh_grid'))
+    _debug_mesh_axis = eval(config.get('Default', 'debug_mesh_axis'))
 
     from _modulo_UI import UI, Logica
     from _modulo_MATE import Camera, PointCloud, DebugMesh, Importer, Modello, Mate
@@ -104,7 +106,7 @@ def main(config: configparser):
         point_cloud.links = ris_crescita[1].astype(int)
 
         # disegno realtà aumentata
-        debug_mesh.scelta_debug(True, True)
+        debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
         # disegno punti
@@ -123,7 +125,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read('./DATA/settings.ini')
     
-    _profiler = bool(config.get('Default', 'profiler'))
+    _profiler = eval(config.get('Default', 'profiler'))
     
     if _profiler:
         profiler = cProfile.Profile()
