@@ -103,7 +103,7 @@ def main(config: configparser):
         logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
         logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
-        logica.messaggio_debug5 = f"Cam rot : {(camera.becche * 180 / 3.1415):.1f}, {(camera.rollio * 180 / 3.1415):.1f}, {(camera.imbard * 180 / 3.1415):.1f}"
+        logica.messaggio_debug5 = f"Cam rot : {[round(i, 2) for i in list(camera.rig)]}"
         
         ui.aggiorna_messaggi_debug(logica)
         
