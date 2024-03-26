@@ -2,6 +2,7 @@ import cProfile
 from pygame.locals import *
 import pygame
 import configparser
+import numpy as np
     
 def main(config: configparser):
     
@@ -82,14 +83,6 @@ def main(config: configparser):
                 
 
         # UI ----------------------------------------------------------------
-        # set messaggi debug
-        logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
-        # logica.messaggio_debug2 = f"Numero di vertici : {len(modello.verteces_ori)}"
-        logica.messaggio_debug3 = f"Path modello : {path_modello}"
-        logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
-        logica.messaggio_debug5 = f"Cam rot : {(camera.becche * 180 / 3.1415):.1f}, {(camera.rollio * 180 / 3.1415):.1f}, {(camera.imbard * 180 / 3.1415):.1f}"
-        
-        ui.aggiorna_messaggi_debug(logica)
         
         # disegno i labels
         [label.disegnami() for indice, label in ui.scena["main"].label_text.items()]
@@ -105,6 +98,15 @@ def main(config: configparser):
         point_cloud.verteces_ori = ris_crescita[0] / 10
         point_cloud.links = ris_crescita[1].astype(int)
 
+        # set messaggi debug
+        logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
+        logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
+        logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
+        logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
+        logica.messaggio_debug5 = f"Cam rot : {(camera.becche * 180 / 3.1415):.1f}, {(camera.rollio * 180 / 3.1415):.1f}, {(camera.imbard * 180 / 3.1415):.1f}"
+        
+        ui.aggiorna_messaggi_debug(logica)
+        
         # disegno realtà aumentata
         debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
