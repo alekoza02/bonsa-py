@@ -6,7 +6,7 @@ class Albero:
 
         # INIZIALIZZAZIONE VARIABILI
 
-        # spessore iniziale rami nuovi
+        # spessore iniziale segmenti nuovi
         self.C_spess_iniz = .2
     
         # nodi è un array numpy di coordinate 
@@ -338,10 +338,10 @@ class Albero:
         # Array "filtro"  
         a_filtro_gemme = a_gemme == 1
 
-        # Array "filtro" contenente gli indici dei nodi terminali di rami lunghi
-        a_filtro_lunghi = self.rami[self.a_lung > 10,C_DEST].astype(np.int32)
+        # Array "filtro" contenente gli indici dei nodi terminali di segmenti lunghi
+        a_filtro_lunghi = self.segmenti[self.a_lung > 10,C_DEST].astype(np.int32)
 
-        # a_filtro_lunghi --> array indici dei nodi teminali di rami lunghi
+        # a_filtro_lunghi --> array indici dei nodi teminali di segmenti lunghi
         # a_filtro_gemme  
         a_filtro = a_filtro_lunghi[a_filtro_gemme[a_filtro_lunghi]]
 
@@ -353,10 +353,10 @@ class Albero:
         #return a_gemme, a_indici, a_filtro, a_rand
         return a_filtro, a_rand
 
-    def piega_ramo(self,a_elenco_rami):
-        # calcolo coordinate polari dei nodi dei rami da piegare
-        a_orig=self.nodi[a_elenco_rami[:,self.C_ORIG].astype(int)]
-        a_dest=self.nodi[a_elenco_rami[:,self.C_DEST].astype(int)]
+    def piega_ramo(self,a_elenco_segmenti):
+        # calcolo coordinate polari dei nodi dei segmenti da piegare
+        a_orig=self.nodi[a_elenco_segmenti[:,self.C_ORIG].astype(int)]
+        a_dest=self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)]
         a_ro,a_theta,a_phi = Albero.cart_to_sphere (a_orig,a_dest)
         # print("ro, th, fi: ",a_ro,a_theta,a_phi)
         
@@ -372,39 +372,39 @@ class Albero:
         a_dest = np.vstack((a_nuove_x,a_nuove_y,a_nuove_z)).T
 
 
-        # print("Prima: ",self.nodi[a_elenco_rami[:,self.C_DEST].astype(int)])
+        # print("Prima: ",self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)])
         # print("Dopo: ", a_dest)
         
 
-        # Calcolo le differenze di coordinate (serviranno per spostare tutti i rami collegati)
-        a_differenze = self.nodi[a_elenco_rami[:,self.C_DEST].astype(int)] - a_dest 
+        # Calcolo le differenze di coordinate (serviranno per spostare tutti i segmenti collegati)
+        a_differenze = self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] - a_dest 
   
         # Sostituisco le nuove coordinate di destinazione
-        self.nodi[a_elenco_rami[:,self.C_DEST].astype(int)] = a_dest
+        self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] = a_dest
 
-        # I rami successivi sono quelli che hanno come origine i nodi di destinazione dei rami attuali
-        # a_rami_successivi=self.rami[self.rami[:,self.C_ORIG] == a_elenco_rami[:,self.C_DEST]]
+        # I segmenti successivi sono quelli che hanno come origine i nodi di destinazione dei segmenti attuali
+        # a_segmenti_successivi=self.segmenti[self.segmenti[:,self.C_ORIG] == a_elenco_segmenti[:,self.C_DEST]]
 
         # Per ogni ramo cerco i successivi, 
         # li abbasso di quanto si è abbassato il nodo di destinazione e
         # li piego a loro volta
 
-        for i in range(a_elenco_rami.shape[0]):
-            ramo = a_elenco_rami[i]
+        for i in range(a_elenco_segmenti.shape[0]):
+            ramo = a_elenco_segmenti[i]
             diff = a_differenze[i]
-            a_rami_successivi = self.rami[self.rami[:,self.C_ORIG] == ramo[self.C_DEST]]
-            if a_rami_successivi.size > 0:
-                # print(a_rami_successivi,diff)
-                self.abbassa_ramo(a_rami_successivi,diff)
-                # self.piega_ramo(a_rami_successivi)
+            a_segmenti_successivi = self.segmenti[self.segmenti[:,self.C_ORIG] == ramo[self.C_DEST]]
+            if a_segmenti_successivi.size > 0:
+                # print(a_segmenti_successivi,diff)
+                self.abbassa_ramo(a_segmenti_successivi,diff)
+                # self.piega_ramo(a_segmenti_successivi)
 
 
-    def abbassa_ramo(self, a_elenco_rami, differenze):
-        # print (a_elenco_rami)
-        self.nodi[a_elenco_rami[:,self.C_DEST].astype(int)] += differenze
-        a_rami_successivi = self.rami[np.in1d(self.rami[:,self.C_ORIG], a_elenco_rami[:,self.C_DEST])]
-        if a_rami_successivi.size > 0:
-            self.abbassa_ramo(a_rami_successivi,differenze)
+    def abbassa_ramo(self, a_elenco_segmenti, differenze):
+        # print (a_elenco_segmenti)
+        self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] += differenze
+        a_segmenti_successivi = self.segmenti[np.in1d(self.segmenti[:,self.C_ORIG], a_elenco_segmenti[:,self.C_DEST])]
+        if a_segmenti_successivi.size > 0:
+            self.abbassa_ramo(a_segmenti_successivi,differenze)
 
             
 
