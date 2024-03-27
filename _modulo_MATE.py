@@ -82,6 +82,17 @@ class Mate:
             [0, 0, 1, 0],
             [0, 0, 0, 1]
         ])
+        
+    @staticmethod
+    def rot_ax(axis: np.ndarray[float], ang: float) -> np.ndarray[np.ndarray[float]]:
+        K = np.array([
+            [0, -axis[2], axis[1], 0],
+            [axis[2], 0, -axis[0], 0],
+            [-axis[1], axis[0], 0, 0],
+            [0, 0, 0, 1]
+        ])
+
+        return np.eye(4) + np.sin(ang) * K + (1 - np.cos(ang)) * np.dot(K, K)
     
     @staticmethod
     def trasl(array_trasl: list | np.ndarray[float], array_scala: list | np.ndarray[float] = [1, 1, 1]) -> np.ndarray[np.ndarray[float]]:
@@ -256,11 +267,11 @@ class Camera:
         self.pos[0] = 9.2
         self.pos[1] = -11.1
         self.pos[2] = 5.7
-
+        
         self.becche = 1.4
         self.rollio = 0
         self.imbard = 0.7
-
+    
     
     def rotazione_camera(self) -> None:
         '''
@@ -279,9 +290,8 @@ class Camera:
         self.dir = self.dir @ Mate.rotz(self.imbard)
 
         self.pos -= self.focus
-        self.pos = self.pos @ Mate.rotz(self.imbard - self.delta_imbard)
-        # self.pos = self.pos @ Mate.rotx( self.delta_becche)
-        self.pos = self.pos @ Mate.rotz(- self.imbard)
+        self.pos = self.pos @ Mate.rotz(- self.delta_imbard)
+        self.pos = self.pos @ Mate.rot_ax(self.rig, self.delta_becche)
         self.pos += self.focus
 
     def aggiorna_attributi(self, ctrl: bool, shift: bool, dx: float, dy: float, zoom_in: float, zoom_out: float) -> None:
@@ -303,8 +313,8 @@ class Camera:
 
         # se non è schiacciato nulla -> avverrà rotazione
         else:
-            self.becche -= dy / 1000
-            self.delta_becche = dy / 1000
+            self.becche += dy / 1000
+            self.delta_becche = - dy / 1000
             
             self.rollio -= 0
             self.delta_rollio = 0

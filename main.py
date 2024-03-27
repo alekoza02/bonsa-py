@@ -9,6 +9,8 @@ def main(config: configparser):
     _tasto_navigazione = int(config.get('Default', 'tasto_navigazione'))
     _modello_or_cloud = config.get('Default', 'modello_or_cloud')
     _modello_default = config.get('Default', 'modello_default')
+    _debug_mesh_grid = eval(config.get('Default', 'debug_mesh_grid'))
+    _debug_mesh_axis = eval(config.get('Default', 'debug_mesh_axis'))
 
     from _modulo_UI import UI, Logica
     from _modulo_MATE import Camera, PointCloud, DebugMesh, Importer, Modello, Mate
@@ -101,12 +103,12 @@ def main(config: configparser):
         logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
         logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
-        logica.messaggio_debug5 = f"Cam rot : {(camera.becche * 180 / 3.1415):.1f}, {(camera.rollio * 180 / 3.1415):.1f}, {(camera.imbard * 180 / 3.1415):.1f}"
+        logica.messaggio_debug5 = f"Cam rot : {[round(i, 2) for i in list(camera.rig)]}"
         
         ui.aggiorna_messaggi_debug(logica)
         
         # disegno realtà aumentata
-        debug_mesh.scelta_debug(True, True)
+        debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
         ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
         # disegno punti
@@ -125,7 +127,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read('./DATA/settings.ini')
     
-    _profiler = bool(config.get('Default', 'profiler'))
+    _profiler = eval(config.get('Default', 'profiler'))
     
     if _profiler:
         profiler = cProfile.Profile()

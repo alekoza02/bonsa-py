@@ -296,7 +296,7 @@ class Schermo:
         for struct in render_vertex[points.links]:
             if not AcceleratedFoo.any_fast(struct, self.w/2, self.h/2):
                 for point in struct:
-                    pygame.draw.circle(self.schermo, [255, 100, 100], point[:2], 2)
+                    pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 2)
                 if linked:
                     pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
             
