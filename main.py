@@ -132,7 +132,7 @@ if __name__ == "__main__":
     
     if _profiler:
         profiler = cProfile.Profile()
-        profiler.enable()
+        profiler.enable()    
 
     import time
     start = time.time()
