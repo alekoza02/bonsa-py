@@ -25,6 +25,10 @@ class Albero:
         # Segmento di partenza
         self.segmenti = np.array([[0, 1, 1, self.C_spess_iniz]])
 
+        # Rami è un array numpy che contiene le sequenze di indici dei segmenti che formano rami (e sottorami)
+        self.rami = [[0,1]]
+
+
         ####  IMPOSTAZIONI DI CRESCITA  ####
         # crescita in altezza
         self.crescita_a = .05
@@ -86,7 +90,7 @@ class Albero:
         a_filtro, a_rand = self.calcolo_prosecuzione_segmenti()
         
         # Se le condizioni di spawn nuovi segmenti esistono almeno per un nodo, creo il nuovo segmento
-        if a_filtro.any():
+        if a_filtro.size > 0:
 
             # 3.1) NUOVI NODI
             # L'array dei nuovi nodi è composto da tutti i nodi che devono gemmare 
@@ -115,6 +119,15 @@ class Albero:
             self.nodi=np.vstack((self.nodi,nuovi_nodi))
             self.segmenti=np.vstack((self.segmenti,nuovi_segmenti))
 
+            # 3.4) AGGIORNAMENTO RAMI
+            # I nuovi segmenti vanno aggiunti ai rami esistenti (dei quali sono la prosecuzione)
+            # e vanno anche aggiunti come nuovi rami (sé stesso e il segmento precedente)            
+            for segmento in nuovi_segmenti:
+                self.rami = [ ramo+[int(segmento[self.C_DEST])] if int(segmento[self.C_ORIG]) in ramo else ramo for ramo in self.rami ]
+            for segmento in nuovi_segmenti:
+                self.rami.append(segmento[0:2].astype(int).tolist())
+
+            print("Aggiornare rami anche nelle altre routine di spawn nuovi segmenti")
 
             
         # STEP 4 - GENERAZIONE NUOVI SEGMENTI SECONDARI 
