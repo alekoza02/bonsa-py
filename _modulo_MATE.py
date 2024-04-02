@@ -7,13 +7,33 @@ class Mate:
         pass
     
     @staticmethod
-    def modulo(v: np.ndarray[float]) -> float:
-        return np.linalg.norm(v)
+    def modulo(v: np.ndarray[float] | np.ndarray[np.ndarray[float]]) -> float:
+        if type(v[0]) == np.ndarray:
+            return np.linalg.norm(v, axis=1)
+        else:     
+            return np.linalg.norm(v)
         
     @staticmethod
-    def versore(v: np.ndarray[float]) -> np.ndarray[float]:
-        return v / Mate.modulo(v)
+    def versore(v: np.ndarray[float] | np.ndarray[np.ndarray[float]]) -> np.ndarray[float]:
+        if type(v[0]) == np.ndarray:
+            return np.divide(v, Mate.modulo(v)[:,None])
+        else:     
+            return v / Mate.modulo(v)
         
+    @staticmethod
+    def mediana_tri_buffer(v: np.ndarray[np.ndarray[float]], l: np.ndarray[np.ndarray[int]]) -> np.ndarray[np.ndarray[float]]:
+        triangoli = v[l]
+        v0 = triangoli[:,0,:3]
+        v1 = triangoli[:,1,:3]
+        v2 = triangoli[:,2,:3]
+        return (v0 + v1 + v2) / 3
+    
+    @staticmethod
+    def distance_from_cam_tri_buffer(v: np.ndarray[float], cam: np.ndarray[int]) -> np.ndarray[float]:
+        to_origin = v - cam[:3]
+        ris = Mate.modulo(to_origin)
+        return ris
+    
     @staticmethod
     def normale_tri_buffer(v: np.ndarray[np.ndarray[float]], l: np.ndarray[np.ndarray[int]]) -> np.ndarray[np.ndarray[float]]:
         triangoli = v[l]
@@ -89,7 +109,7 @@ class Mate:
             [0, -axis[2], axis[1], 0],
             [axis[2], 0, -axis[0], 0],
             [-axis[1], axis[0], 0, 0],
-            [0, 0, 0, 1]
+            [0, 0, 0, 0]
         ])
 
         return np.eye(4) + np.sin(ang) * K + (1 - np.cos(ang)) * np.dot(K, K)

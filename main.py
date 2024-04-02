@@ -55,31 +55,31 @@ def main(config: configparser):
 
         # scena main UI
         for event in eventi_in_corso:
-                # MOUSE
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == _tasto_navigazione:
-                        logica.dragging = True
-                        logica.dragging_end_pos = logica.mouse_pos
-                    if event.button == 4:
-                        logica.scroll_up += 1
-                    if event.button == 5:
-                        logica.scroll_down += 1
+            # MOUSE
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == _tasto_navigazione:
+                    logica.dragging = True
+                    logica.dragging_end_pos = logica.mouse_pos
+                if event.button == 4:
+                    logica.scroll_up += 1
+                if event.button == 5:
+                    logica.scroll_down += 1
 
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == _tasto_navigazione: 
-                        logica.dragging = False
-                        logica.dragging_end_pos = logica.mouse_pos
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == _tasto_navigazione: 
+                    logica.dragging = False
+                    logica.dragging_end_pos = logica.mouse_pos
 
-                if event.type == pygame.MOUSEMOTION:
-                    if logica.dragging:
-                        logica.dragging_start_pos = logica.dragging_end_pos
-                        logica.dragging_end_pos = logica.mouse_pos
-                        logica.dragging_dx = logica.dragging_end_pos[0] - logica.dragging_start_pos[0]
-                        logica.dragging_dy = - logica.dragging_end_pos[1] + logica.dragging_start_pos[1] # sistema di riferimento invertito
+            if event.type == pygame.MOUSEMOTION:
+                if logica.dragging:
+                    logica.dragging_start_pos = logica.dragging_end_pos
+                    logica.dragging_end_pos = logica.mouse_pos
+                    logica.dragging_dx = logica.dragging_end_pos[0] - logica.dragging_start_pos[0]
+                    logica.dragging_dy = - logica.dragging_end_pos[1] + logica.dragging_start_pos[1] # sistema di riferimento invertito
 
-                # CONTROLLO TELECAMERA
-                logica.ctrl = keys[pygame.K_LCTRL]
-                logica.shift = keys[pygame.K_LSHIFT]
+        # CONTROLLO TELECAMERA
+        logica.ctrl = keys[pygame.K_LCTRL]
+        logica.shift = keys[pygame.K_LSHIFT]
                 
 
         # UI ----------------------------------------------------------------
@@ -94,16 +94,16 @@ def main(config: configparser):
         camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
-        ris_crescita = albero.crescita()
-        point_cloud.verteces_ori = ris_crescita[0] / 10
-        point_cloud.links = ris_crescita[1].astype(int)
+        # ris_crescita = albero.crescita()
+        # point_cloud.verteces_ori = ris_crescita[0] / 10
+        # point_cloud.links = ris_crescita[1].astype(int)
 
         # set messaggi debug
         logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
-        logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
-        logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
+        # logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
+        # logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
-        logica.messaggio_debug5 = f"Cam rot : {[round(i, 2) for i in list(camera.rig)]}"
+        logica.messaggio_debug5 = f"hehehehe"
         
         ui.aggiorna_messaggi_debug(logica)
         
@@ -114,6 +114,7 @@ def main(config: configparser):
         # disegno punti
         if _modello_or_cloud == "modello":
             ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
+            # ui.scena["main"].schermo["viewport"].renderizza_modello_pixel_based(modello, camera, logica)
         elif _modello_or_cloud == "points":
             ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=True)
         # UI ----------------------------------------------------------------

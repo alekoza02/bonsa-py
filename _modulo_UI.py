@@ -1,7 +1,7 @@
 import numpy as np
 import pygame
 import ctypes
-import time
+from numba import njit
 
 from _modulo_MATE import Mate, AcceleratedFoo, Camera, PointCloud, DebugMesh, Modello
 
@@ -252,10 +252,8 @@ class Schermo:
 
     def disegnami(self) -> None:
         '''
-        Volendo potrà aggiungere un surfarray, per ora imposta solo lo sfondo
-        '''
-        # self.buffer = np.random.random(self.buffer.shape) * 255
-        # self.surface = pygame.surfarray.make_surface(self.buffer) 
+        Imposta solo lo sfondo
+        ''' 
         self.schermo.fill((148 / 7, 177 / 7, 255 / 7))
         
     
@@ -302,10 +300,8 @@ class Schermo:
             
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
     
-    def renderizza_modello(self, modello: Modello, camera: Camera, logica: Logica, wireframe: bool = True) -> None:
-        '''
-        Viene renderizzato un array di punti nella classe PointCloud
-        '''
+    
+    def renderizza_modello_pixel_based(self, modello: Modello, camera: Camera, logica: Logica) -> None:
         
         # aggiunta della 4 coordinata (omogenea) per poter applicare le varie matrici
         modello.verteces_ori = Mate.add_homogenous(modello.verteces_ori)
@@ -313,7 +309,11 @@ class Schermo:
         # applico le varie trasformazioni (SOLO locali all'oggetto) come l'autorotazione
         modello.applica_rotazioni(autorotation=logica.dt)
         modello.applica_traslazioni()
-
+        
+        # calcolo normali per shading
+        normali = Mate.normale_tri_buffer(modello.verteces, modello.links)
+        normali = Mate.versore(normali[:,:3])
+        
         # rimuovo la coordinata oer non fare casini più avanti
         modello.verteces_ori = Mate.remove_homogenous(modello.verteces_ori)        
         
@@ -322,10 +322,177 @@ class Schermo:
         
         triangoli = modello.verteces[modello.links]
         
-        for triangolo in triangoli:
-            if not AcceleratedFoo.any_fast(triangolo, self.w/2, self.h/2):
-                pygame.draw.polygon(self.schermo, [100, 100, 100], triangolo[:, :2], wireframe)
+        # schermatura out of cam view
+        maschera = np.any((triangoli == self.w/2) | (triangoli == self.h/2), axis=(1, 2))
+        triangoli = triangoli[~maschera]
+        normali = normali[~maschera]
+        
+        self.buffer = Schermo.rasterization(self.w, self.h, triangoli, normali, camera.dir, camera.pos, np.pi/6)
+        
+        self.surface = pygame.surfarray.make_surface(self.buffer)
+        self.madre.blit(self.surface, (self.ancoraggio_x, self.ancoraggio_y))
+    
+    
+    @staticmethod
+    @njit(fastmath=True)
+    def rasterization(w: int, h: int, triangles: np.ndarray[np.ndarray[np.ndarray[float]]], normali: np.ndarray[np.ndarray[float]], cam_dir: np.ndarray[float], cam_pos: np.ndarray[float], fov: float) -> np.ndarray[np.ndarray[float]]:
+        
+        v1 = triangles[:, 0, :]
+        v2 = triangles[:, 1, :]
+        v3 = triangles[:, 2, :]
+        
+        triangles = np.ones(triangles.shape)
+        triangles[:, 0, :] = v1
+        triangles[:, 1, :] = v3
+        triangles[:, 2, :] = v2
+        
+        def cross_edge(vertex1, vertex2, p):
+            edge12 = vertex1 - vertex2
+            edge1p = vertex1 - p
+            return edge12[0] * edge1p[1] - edge12[1] * edge1p[0]
+        
+        cam_dir_norm = cam_dir / np.linalg.norm(cam_dir)
+        
+        min_z = np.min(triangles[:,:,2])
+        
+        colori = np.dot(normali, - cam_dir_norm[:3])
+        
+        buffer = np.zeros((w, h, 3))
+        zbuffer = np.ones((w, h)) * 500
+
+        for triangle, colore in zip(triangles, colori):
             
+            if colore >= 0:
+
+                min_x = int(np.min(triangle[:,0]))
+                max_x = int(np.max(triangle[:,0]))
+                min_y = int(np.min(triangle[:,1]))
+                max_y = int(np.max(triangle[:,1]))
+                
+                if max_x < 0: continue
+                if max_y < 0: continue
+                if min_x > w: continue
+                if min_y > h: continue
+                                
+                if max_x > w: max_x = w
+                if max_y > h: max_y = h
+                if min_x < 0: min_x = 0
+                if min_y < 0: min_y = 0
+                            
+                v_1 = triangle[0, :2]
+                v_2 = triangle[1, :2]
+                v_3 = triangle[2, :2]
+                
+                z_1 = triangle[0, 2]
+                z_2 = triangle[1, 2]
+                z_3 = triangle[2, 2]
+        
+                area = cross_edge(v_1, v_2, v_3)
+                if area == 0: continue
+                
+                delta_w0_col = v_2[1] - v_3[1]
+                delta_w1_col = v_3[1] - v_1[1]
+                delta_w2_col = v_1[1] - v_2[1]
+                
+                delta_w0_row = v_3[0] - v_2[0]
+                delta_w1_row = v_1[0] - v_3[0]
+                delta_w2_row = v_2[0] - v_1[0]
+                
+                p0 = np.array([min_x, min_y])
+
+                w0_row = cross_edge(v_2, v_3, p0)
+                w1_row = cross_edge(v_3, v_1, p0)
+                w2_row = cross_edge(v_1, v_2, p0)
+                
+                for y in range(min_y, max_y):
+                    w0 = w0_row
+                    w1 = w1_row
+                    w2 = w2_row
+                    for x in range(min_x, max_x):
+                        
+                        alpha = w0 / area
+                        beta = w1 / area
+                        gamma = w2 / area
+                        
+                        if w0 >= 0 and w1 >= 0 and w2 >= 0:
+                            
+                            z = z_1 * alpha + z_2 * beta + z_3 * gamma 
+
+                            distance = z - min_z
+                            
+                            if distance < zbuffer[x, y]:
+                                
+                                zbuffer[x, y] = distance
+                            
+                                buffer[x, y, :] = [colore * 200 + 50, colore * 200 + 50, colore * 200 + 40]   
+                                # buffer[x, y, 0] = alpha
+                                # buffer[x, y, 1] = beta
+                                # buffer[x, y, 2] = gamma 
+                        
+                        w0 += delta_w0_col 
+                        w1 += delta_w1_col
+                        w2 += delta_w2_col
+                    
+                    w0_row += delta_w0_row 
+                    w1_row += delta_w1_row
+                    w2_row += delta_w2_row
+                    
+        return buffer
+        
+        
+    def renderizza_modello(self, modello: Modello, camera: Camera, logica: Logica, wireframe: bool = True) -> None:
+        '''
+        Viene renderizzato un array di punti nella classe Modello
+        '''
+        
+        # aggiunta della 4 coordinata (omogenea) per poter applicare le varie matrici
+        modello.verteces_ori = Mate.add_homogenous(modello.verteces_ori)
+        
+        # applico le varie trasformazioni (SOLO locali all'oggetto) come l'autorotazione
+        modello.applica_rotazioni(autorotation=logica.dt)
+        modello.applica_traslazioni()
+        
+        # calcolo delle backface e colore shading normale
+        normali_iterazione = Mate.normale_tri_buffer(modello.verteces, modello.links)
+        normali_iterazione = Mate.versore(normali_iterazione)
+        colori_normali = np.dot(normali_iterazione, Mate.versore(camera.pos[:3]))
+        
+        # rimuovo la coordinata oer non fare casini più avanti
+        modello.verteces_ori = Mate.remove_homogenous(modello.verteces_ori)        
+        
+        # calcolo mediana per quick sort
+        mediane = Mate.mediana_tri_buffer(modello.verteces, modello.links)
+        distanze = Mate.distance_from_cam_tri_buffer(mediane, camera.pos)
+        indici_sort = np.argsort(- distanze)
+        
+        # uso la camera per proiettare tutto nel suo spazio e poter avere i vertici finali
+        modello.verteces = self.apply_transforms(modello.verteces, camera)
+        
+        triangoli = modello.verteces[modello.links]
+        
+        # sort triangoli e colori
+        triangoli = triangoli[indici_sort]
+        colori_normali = colori_normali[indici_sort]
+        
+        # schermatura out of cam view
+        maschera_camview = np.any((triangoli == self.w/2) | (triangoli == self.h/2), axis=(1, 2))
+        triangoli = triangoli[~maschera_camview]
+        colori_normali = colori_normali[~maschera_camview]
+        
+        # schermatura backculling
+        maschera_backface = colori_normali >= 0
+        triangoli = triangoli[maschera_backface]
+        colori_normali = colori_normali[maschera_backface]
+        
+        # pre trasformazione in interi
+        triangoli = triangoli.astype(np.int32)
+        
+        colori_normali *= 200
+        colori_normali = colori_normali.astype(np.int32)
+        
+        for triangolo, colore in zip(triangoli, colori_normali):
+            pygame.draw.polygon(self.schermo, [colore + 50, colore + 50, colore + 40], triangolo[:, :2], 0)
+                    
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
     
     def renderizza_debug_mesh(self, debug: DebugMesh, camera: Camera) -> None:    
