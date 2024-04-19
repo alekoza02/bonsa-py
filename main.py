@@ -61,9 +61,9 @@ def main(config: configparser):
                     logica.dragging = True
                     logica.dragging_end_pos = logica.mouse_pos
                 if event.button == 4:
-                    logica.scroll_up += 1
+                    logica.scroll_up += 10
                 if event.button == 5:
-                    logica.scroll_down += 1
+                    logica.scroll_down += 10
 
             if event.type == pygame.MOUSEBUTTONUP:
                 if event.button == _tasto_navigazione: 
@@ -94,14 +94,14 @@ def main(config: configparser):
         camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
-        # ris_crescita = albero.crescita()
-        # point_cloud.verteces_ori = ris_crescita[0] / 10
-        # point_cloud.links = ris_crescita[1].astype(int)
+        ris_crescita = albero.crescita()
+        point_cloud.verteces_ori = ris_crescita[0] / 10
+        point_cloud.links = ris_crescita[1].astype(int)
 
         # set messaggi debug
         logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
-        # logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
-        # logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
+        logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
+        logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
         logica.messaggio_debug5 = f"hehehehe"
         
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     import time
     start = time.time()
     main(config)
-    print(f"Finito in {time.time() - start}")
+    print(f"Finito in {time.time() - start:.0f}s")
     
     if _profiler:
         profiler.disable()

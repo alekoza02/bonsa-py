@@ -326,10 +326,10 @@ class Camera:
 
         # se lo shift è schiacciato -> avverrà traslazione
         elif shift:
-            self.focus[:3] -= self.rig[:3] * dx / 100
-            self.focus[:3] -= self.ups[:3] * dy / 100
-            self.pos[:3] -= self.rig[:3] * dx / 100
-            self.pos[:3] -= self.ups[:3] * dy / 100
+            self.focus[:3] -= self.rig[:3] * dx / 10
+            self.focus[:3] -= self.ups[:3] * dy / 10
+            self.pos[:3] -= self.rig[:3] * dx / 10
+            self.pos[:3] -= self.ups[:3] * dy / 10
 
         # se non è schiacciato nulla -> avverrà rotazione
         else:
