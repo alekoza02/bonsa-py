@@ -33,18 +33,30 @@ class Albero:
         # crescita in altezza
         self.crescita_a = .05
         # crescita in larghezza
-        self.crescita_l = .0001
+        self.crescita_l = .001
         # tendenza verso l'alto dei rami nuovi
-        self.alto = .001
+        self.alto = .0001
         # tendenza verso il basso dei rami vecchi
         self.basso = -.001
         # massima variazione di angolo iniziale rispetto al ramo padre
         # self.angolo_iniziale = np.pi/8
+        # angolo minimo di spawn nuovi rami 
+        self.angolo_min_spawn = np.pi/8
+        # angolo massimo di spawn nuovi rami 
+        self.angolo_range_spawn = np.pi/4
+        
+
         # simmetria (gemma doppia)
         self.simmetria = False
 
         # interazioni di crescita
         self.iterazioni = 0
+
+        self.mess1 = ""
+        self.mess2 = ""
+        self.mess3 = ""
+        self.mess4 = ""
+        self.mess5 = ""
 
 
     def crescita(self):
@@ -61,10 +73,12 @@ class Albero:
         
         
         self.iterazioni += 1
-        print(self.iterazioni)
-       
+        self.mess4 = f"{self.iterazioni = }"
+        self.mess5 = f"segmenti: {len(self.segmenti)}"
+
         if len(self.segmenti) > 5000:
             return self.nodi,self.segmenti
+            #return nodi_v,segm_v
 
 
         # STEP 1 - CRESCITA GENERALE DI TUTTI I SEGMENTI
@@ -95,7 +109,7 @@ class Albero:
             # 3.1) NUOVI NODI
             # L'array dei nuovi nodi è composto da tutti i nodi che devono gemmare 
             # ai quali sommo gli allungamenti del ramo precedente (prosecuzione)
-            # e un fattore casuale sulle coordinate x e y (z è fissa = "alto")
+            # e un fattore casuale sulle coordinate (x e y: casuali, z casuale + un fisso: "alto")
 
             # Estendo array degli allungamenti per applicarlo ai nodi (nodi=segmenti+1)
             a_allu_esteso = np.vstack((np.array([[0.,0.,0.]]),self.a_allu))
@@ -148,7 +162,7 @@ class Albero:
                 i_nodo=int(self.segmenti[i_nodo-1,self.C_ORIG])
                 sequenza.append(i_nodo)
 
-            if len(sequenza) > 10:
+            if len(sequenza) > 20:
                 l_rametti.append(sequenza)
 
 
@@ -198,8 +212,8 @@ class Albero:
                 a_angoli_oriz = a_angoli_oriz_p + a_diff_angoli
 
                 # angoli verticali: da pi/4 a pi/4 + pi/8
-                #a_angoli_vert = np.random.random(len(a_angoli_vert_p))*np.pi/8  +np.pi/4
-                a_angoli_vert = np.random.random(len(a_angoli_vert_p))*np.pi/4 
+                a_angoli_vert = np.random.random(len(a_angoli_vert_p))*self.angolo_range_spawn+self.angolo_min_spawn
+                
 
                 
                 a_nuovi_nodi = a_nodi_scelti + np.vstack((
@@ -277,11 +291,15 @@ class Albero:
         # self.piega_segmento(self.segmenti)
 
         # STEP FINALE - Morte rami bassi
-        # Quando l'albero diventa folto ( > 5000 segmenti)
+        # Quando l'albero diventa folto ( > 1000 segmenti)
         # inizio a rimuovere i segmenti terminali più bassi
 
         if len(self.segmenti) > 1000:
-            for n in range(random.randint(-2,3)):
+            mi,ma = -10,3
+            # probabilità di NON cancellare segmenti: -mi / (ma-mi)
+            # probabilità di cancellare 1 segmento: 1 / (ma-mi)
+            # probabilità di cancellare 2 segmenti: 1 / (ma-mi)
+            for n in range(random.randint(-10,3)):
                 # Cerco i segmenti terminali (quelli che NON hanno i nodi di destinazione tra tutti i nodi di origine )
                 a_segmenti_terminali = self.segmenti[~np.isin(self.segmenti[:,self.C_DEST],self.segmenti[:,self.C_ORIG])]
 
@@ -304,8 +322,34 @@ class Albero:
                 # Riaggiusto i puntamenti dei segmenti
                 self.segmenti[:,:2][self.segmenti[:,:2] > i_nodo_da_togliere] -=1
 
+        # PROVA DI AGGIUNTA POLIGONI
 
-        return self.nodi,self.segmenti
+        # SPESSORE
+
+        nodi_visua1 = self.nodi.copy()
+        nodi_visua2 = self.nodi.copy()
+        nodi_visua3 = self.nodi.copy()
+        nodi_visua4 = self.nodi.copy()
+        nodi_visua2[0,self.C_X] += self.segmenti[0,self.C_SPESS]
+        nodi_visua2[1:,self.C_X] += self.segmenti[:,self.C_SPESS]
+        nodi_visua3[0,self.C_Y] += self.segmenti[0,self.C_SPESS]
+        nodi_visua3[1:,self.C_Y] += self.segmenti[:,self.C_SPESS]
+        nodi_visua4[0,self.C_Z] += self.segmenti[0,self.C_SPESS]
+        nodi_visua4[1:,self.C_Z] += self.segmenti[:,self.C_SPESS]
+        
+        segm_visua1 = self.segmenti.copy()
+        segm_visua2 = self.segmenti.copy()
+        segm_visua3 = self.segmenti.copy()
+        segm_visua4 = self.segmenti.copy()
+        segm_visua2[:,:2] += len(self.segmenti)+1  
+        segm_visua3[:,:2] += 2*len(self.segmenti)+2  
+        segm_visua4[:,:2] += 3*len(self.segmenti)+3  
+
+        nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
+        segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
+
+        return nodi_v,segm_v
+        #return self.nodi,self.segmenti
 
 
 
@@ -376,7 +420,7 @@ class Albero:
         C_DEST=1
 
         # Aggiorno il conteggio delle gemme
-        a_indici,a_gemme = self.ricalcolo_array_gemme ()
+        a_indici,a_gemme = self.ricalcolo_array_gemme()
 
         # Combino le due condizioni:
         # 1) nodi con gemme=1 (array completo di booleani, es.: [ True, False, False, True, ...])
@@ -393,8 +437,8 @@ class Albero:
         a_filtro = a_filtro_lunghi[a_filtro_gemme[a_filtro_lunghi]]
 
         # Array di variazione casuale su x e y, mentre su z è fissa (alto)
-        a_rand = np.random.uniform(-0.001, 0.001, size=(len(a_gemme), 3))
-        a_rand[:, 2] = self.alto
+        a_rand = np.random.uniform(-0.002, 0.002, size=(len(a_gemme), 3))
+        a_rand[:, 2] += self.alto
 
 
         #return a_gemme, a_indici, a_filtro, a_rand

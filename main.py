@@ -100,10 +100,13 @@ def main(config: configparser):
 
         # set messaggi debug
         logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
-        logica.messaggio_debug2 = f"Numero di segmenti : {len(point_cloud.verteces_ori)}"
+        logica.messaggio_debug2 = f"Numero di poligoni : {len(point_cloud.verteces_ori)}"
         logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
         logica.messaggio_debug5 = f"hehehehe"
+        
+        logica.messaggio_debug4 = albero.mess4
+        logica.messaggio_debug5 = albero.mess5
         
         ui.aggiorna_messaggi_debug(logica)
         
@@ -116,7 +119,7 @@ def main(config: configparser):
             ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
             # ui.scena["main"].schermo["viewport"].renderizza_modello_pixel_based(modello, camera, logica)
         elif _modello_or_cloud == "points":
-            ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=True)
+            ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=True, points_draw=False)
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
