@@ -273,7 +273,7 @@ class Schermo:
         return camera, logica
     
         
-    def renderizza_point_cloud(self, points: PointCloud, camera: Camera, logica: Logica, linked: bool = False) -> None:
+    def renderizza_point_cloud(self, points: PointCloud, camera: Camera, logica: Logica, linked: bool = False, points_draw: bool = False) -> None:
         '''
         Viene renderizzato un array di punti nella classe PointCloud
         '''
@@ -293,8 +293,9 @@ class Schermo:
         
         for struct in render_vertex[points.links]:
             if not AcceleratedFoo.any_fast(struct, self.w/2, self.h/2):
-                for point in struct:
-                    pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 2)
+                if points_draw:
+                    for point in struct:
+                        pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 1)
                 if linked:
                     pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
             
