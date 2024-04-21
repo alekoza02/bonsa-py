@@ -200,13 +200,16 @@ class Importer:
         self.use_file = use_file
         self.use_struttura = use_struttura
 
-    def modello(self, nome):
+    def modello(self, nome, texture, uv_check = False):
         if self.use_file:
             file_path = f'{nome}'
+            texture_path = f'{texture}'
 
             vertici = []
             links = []
-
+            uv_links = []
+            uv = []
+            
             with open(file_path, 'r') as file:
                 lines = file.readlines()
 
@@ -215,14 +218,34 @@ class Importer:
                     vertex = [float(x) for x in line.split()[1:]]
                     vertici.append(vertex)
                 elif line.startswith('f '):
-                    link = [int(x.split('//')[0]) for x in line.split()[1:]]
-                    links.append(link)
-
+                    link = [x.split('/') for x in line.split()[1:]]
+                    links.append([int(i[0]) for i in link])
+                    if uv_check: uv_links.append([int(i[1]) for i in link])
+                elif line.startswith('vt ') and uv_check:
+                    uv_single = [float(x) for x in line.split()[1:]]
+                    uv.append(uv_single)
+                    
             vertici = np.array(vertici)
+            uv = np.array(uv)
+            uv_links = np.array(uv_links) - 1
             links = np.array(links) - 1
 
             self.verteces = vertici
             self.links = links
+            
+            if uv_check:
+                self.uv = uv
+                self.uv_links = uv_links
+            else:
+                self.uv = np.zeros_like(vertici)
+                self.uv_links = np.zeros_like(links)
+
+            from PIL import Image
+            image = Image.open(texture_path)
+
+            self.texture = np.array(image)
+            self.texture = self.texture.transpose(1,0,2)
+            self.texture = self.texture[:,::-1,:]
 
 class Camera:
     def __init__(self) -> None:
@@ -349,11 +372,14 @@ class Camera:
             self.pos[:3] -= self.dir[:3]
 
 class Modello:
-    def __init__(self, verteces, links, normali, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
+    def __init__(self, verteces, links, normali, uv = None, uv_links = None, texture = None, x = 0, y = 0, z = 0, r = 0, b = 0, i = 0, s_x = 1, s_y = 1, s_z = 1) -> None:
         self.verteces_ori = verteces
         self.verteces = self.verteces_ori
         self.links = links
         self.normali = normali
+        self.uv = uv
+        self.uv_links = uv_links
+        self.texture = texture
         
         self.x = x
         self.y = y 

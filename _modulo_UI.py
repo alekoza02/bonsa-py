@@ -321,21 +321,23 @@ class Schermo:
         modello.verteces = self.apply_transforms(modello.verteces, camera)
         
         triangoli = modello.verteces[modello.links]
+        uv_triangolo = modello.uv[modello.uv_links]
         
         # schermatura out of cam view
         maschera = np.any((triangoli == self.w/2) | (triangoli == self.h/2), axis=(1, 2))
         triangoli = triangoli[~maschera]
+        uv_triangolo = uv_triangolo[~maschera]
         normali = normali[~maschera]
         
-        self.buffer = Schermo.rasterization(self.w, self.h, triangoli, normali, camera.dir, camera.pos, np.pi/6)
+        self.buffer = Schermo.rasterization(self.w, self.h, triangoli, normali, uv_triangolo, modello.texture, camera.dir, render_mode=0)
         
         self.surface = pygame.surfarray.make_surface(self.buffer)
         self.madre.blit(self.surface, (self.ancoraggio_x, self.ancoraggio_y))
     
     
     @staticmethod
-    @njit(fastmath=True)
-    def rasterization(w: int, h: int, triangles: np.ndarray[np.ndarray[np.ndarray[float]]], normali: np.ndarray[np.ndarray[float]], cam_dir: np.ndarray[float], cam_pos: np.ndarray[float], fov: float) -> np.ndarray[np.ndarray[float]]:
+    @njit()
+    def rasterization(w: int, h: int, triangles: np.ndarray[np.ndarray[np.ndarray[float]]], normali: np.ndarray[np.ndarray[float]], uv: np.ndarray[np.ndarray[np.ndarray[float]]], texture: np.ndarray[np.ndarray[float]], cam_dir: np.ndarray[float], render_mode: int = 0) -> np.ndarray[np.ndarray[float]]:
         
         v1 = triangles[:, 0, :]
         v2 = triangles[:, 1, :]
@@ -360,14 +362,14 @@ class Schermo:
         buffer = np.zeros((w, h, 3))
         zbuffer = np.ones((w, h)) * 500
 
-        for triangle, colore in zip(triangles, colori):
+        for triangle, colore, uv_sin in zip(triangles, colori, uv):
             
             if colore >= 0:
 
-                min_x = int(np.min(triangle[:,0]))
-                max_x = int(np.max(triangle[:,0]))
-                min_y = int(np.min(triangle[:,1]))
-                max_y = int(np.max(triangle[:,1]))
+                min_x = round(np.min(triangle[:,0]))
+                max_x = round(np.max(triangle[:,0]))
+                min_y = round(np.min(triangle[:,1]))
+                max_y = round(np.max(triangle[:,1]))
                 
                 if max_x < 0: continue
                 if max_y < 0: continue
@@ -386,6 +388,10 @@ class Schermo:
                 z_1 = triangle[0, 2]
                 z_2 = triangle[1, 2]
                 z_3 = triangle[2, 2]
+                
+                uv_1 = uv_sin[0]
+                uv_2 = uv_sin[1]
+                uv_3 = uv_sin[2]
         
                 area = cross_edge(v_1, v_2, v_3)
                 if area == 0: continue
@@ -398,7 +404,7 @@ class Schermo:
                 delta_w1_row = v_1[0] - v_3[0]
                 delta_w2_row = v_2[0] - v_1[0]
                 
-                p0 = np.array([min_x, min_y])
+                p0 = np.array([min_x, min_y]) + np.array([0.5, 0.51])
 
                 w0_row = cross_edge(v_2, v_3, p0)
                 w1_row = cross_edge(v_3, v_1, p0)
@@ -418,16 +424,20 @@ class Schermo:
                             
                             z = z_1 * alpha + z_2 * beta + z_3 * gamma 
 
+                            u = uv_1[0] * alpha + uv_3[0] * beta + uv_2[0] * gamma
+                            v = uv_1[1] * alpha + uv_3[1] * beta + uv_2[1] * gamma
+
                             distance = z - min_z
                             
                             if distance < zbuffer[x, y]:
                                 
                                 zbuffer[x, y] = distance
                             
-                                buffer[x, y, :] = [colore * 200 + 50, colore * 200 + 50, colore * 200 + 40]   
-                                # buffer[x, y, 0] = alpha
-                                # buffer[x, y, 1] = beta
-                                # buffer[x, y, 2] = gamma 
+                                if render_mode == 0: buffer[x, y, :] = [colore * 200 + 50, colore * 200 + 50, colore * 200 + 40]
+                                if render_mode == 1: buffer[x, y, :] = texture[int(u * texture.shape[0]), int(v * texture.shape[1])]
+                                # buffer[x, y, 0] = alpha * 255
+                                # buffer[x, y, 1] = beta * 255
+                                # buffer[x, y, 2] = gamma * 255 
                         
                         w0 += delta_w0_col 
                         w1 += delta_w1_col

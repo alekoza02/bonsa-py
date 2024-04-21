@@ -24,10 +24,11 @@ def main(config: configparser):
     # import modello di prova    
     importer = Importer(True, False)
     path_modello = _modello_default
-    importer.modello(path_modello)
+    path_texture = "TEXTURES/h_hdri_coord.jpg"
+    importer.modello(path_modello, path_texture, False)
     
     if _modello_or_cloud == "modello":
-        modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links), s_x=5, s_y=5, s_z=5)
+        modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links), importer.uv, importer.uv_links, importer.texture, s_x=5, s_y=5, s_z=5)
     elif _modello_or_cloud == "points":
         point_cloud = PointCloud(importer.verteces)
     
@@ -108,13 +109,13 @@ def main(config: configparser):
         ui.aggiorna_messaggi_debug(logica)
         
         # disegno realtà aumentata
-        debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
-        ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
+        # debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
+        # ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
         # disegno punti
         if _modello_or_cloud == "modello":
-            ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
-            # ui.scena["main"].schermo["viewport"].renderizza_modello_pixel_based(modello, camera, logica)
+            # ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
+            ui.scena["main"].schermo["viewport"].renderizza_modello_pixel_based(modello, camera, logica)
         elif _modello_or_cloud == "points":
             ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=True)
         # UI ----------------------------------------------------------------
