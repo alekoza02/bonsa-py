@@ -58,6 +58,11 @@ def main(config: configparser):
         for event in eventi_in_corso:
             # MOUSE
             if event.type == pygame.MOUSEBUTTONDOWN:
+
+                if event.button == 1:
+                    # gestisce eventi bottone e entrata schiacciata
+                    [elemento.selezionato_bot(event) for indice, elemento in ui.scena["main"].bottoni.items()]
+
                 if event.button == _tasto_navigazione:
                     logica.dragging = True
                     logica.dragging_end_pos = logica.mouse_pos
@@ -87,7 +92,10 @@ def main(config: configparser):
         
         # disegno i labels
         [label.disegnami() for indice, label in ui.scena["main"].label_text.items()]
+        [bottone.disegnami() for indice, bottone in ui.scena["main"].bottoni.items()]
         
+        ui.scena["main"].collect_data()
+
         # disegno la viewport
         ui.scena["main"].schermo["viewport"].disegnami()
         
@@ -95,7 +103,7 @@ def main(config: configparser):
         camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
         
         # logica patre
-        ris_crescita = albero.crescita()
+        ris_crescita = albero.crescita(ui.scena["main"].data_widgets)
         point_cloud.verteces_ori = ris_crescita[0] / 10
         point_cloud.links = ris_crescita[1].astype(int)
 
@@ -112,8 +120,8 @@ def main(config: configparser):
         ui.aggiorna_messaggi_debug(logica)
         
         # disegno realtà aumentata
-        # debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
-        # ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
+        debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
+        ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
         
         # disegno punti
         if _modello_or_cloud == "modello":

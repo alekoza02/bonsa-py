@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from _modulo_UI import WidgetData
 
 class Albero:
     def __init__(self) -> None:
@@ -59,7 +60,7 @@ class Albero:
         self.mess5 = ""
 
 
-    def crescita(self):
+    def crescita(self, data_widget: WidgetData):
 
     
         ''' TODO
@@ -69,8 +70,6 @@ class Albero:
         - generare posizione/orientamento foglie e chiedere ad Ale di visualizzarle
         - orientare le gemme alla nascita del nodo successivo
         '''
-
-        
         
         self.iterazioni += 1
         self.mess4 = f"{self.iterazioni = }"
@@ -326,30 +325,33 @@ class Albero:
 
         # SPESSORE
 
-        nodi_visua1 = self.nodi.copy()
-        nodi_visua2 = self.nodi.copy()
-        nodi_visua3 = self.nodi.copy()
-        nodi_visua4 = self.nodi.copy()
-        nodi_visua2[0,self.C_X] += self.segmenti[0,self.C_SPESS]
-        nodi_visua2[1:,self.C_X] += self.segmenti[:,self.C_SPESS]
-        nodi_visua3[0,self.C_Y] += self.segmenti[0,self.C_SPESS]
-        nodi_visua3[1:,self.C_Y] += self.segmenti[:,self.C_SPESS]
-        nodi_visua4[0,self.C_Z] += self.segmenti[0,self.C_SPESS]
-        nodi_visua4[1:,self.C_Z] += self.segmenti[:,self.C_SPESS]
+        if data_widget.render_mode:
+            nodi_visua1 = self.nodi.copy()
+            nodi_visua2 = self.nodi.copy()
+            nodi_visua3 = self.nodi.copy()
+            nodi_visua4 = self.nodi.copy()
+            nodi_visua2[0,self.C_X] += self.segmenti[0,self.C_SPESS]
+            nodi_visua2[1:,self.C_X] += self.segmenti[:,self.C_SPESS]
+            nodi_visua3[0,self.C_Y] += self.segmenti[0,self.C_SPESS]
+            nodi_visua3[1:,self.C_Y] += self.segmenti[:,self.C_SPESS]
+            nodi_visua4[0,self.C_Z] += self.segmenti[0,self.C_SPESS]
+            nodi_visua4[1:,self.C_Z] += self.segmenti[:,self.C_SPESS]
+            
+            segm_visua1 = self.segmenti.copy()
+            segm_visua2 = self.segmenti.copy()
+            segm_visua3 = self.segmenti.copy()
+            segm_visua4 = self.segmenti.copy()
+            segm_visua2[:,:2] += len(self.segmenti)+1  
+            segm_visua3[:,:2] += 2*len(self.segmenti)+2  
+            segm_visua4[:,:2] += 3*len(self.segmenti)+3  
+
+            nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
+            segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
+
+            return nodi_v,segm_v
         
-        segm_visua1 = self.segmenti.copy()
-        segm_visua2 = self.segmenti.copy()
-        segm_visua3 = self.segmenti.copy()
-        segm_visua4 = self.segmenti.copy()
-        segm_visua2[:,:2] += len(self.segmenti)+1  
-        segm_visua3[:,:2] += 2*len(self.segmenti)+2  
-        segm_visua4[:,:2] += 3*len(self.segmenti)+3  
-
-        nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
-        segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
-
-        return nodi_v,segm_v
-        #return self.nodi,self.segmenti
+        else:
+            return self.nodi,self.segmenti
 
 
 

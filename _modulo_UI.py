@@ -181,9 +181,11 @@ class DefaultScene:
 
         self.ori_y : int = self.madre.get_height()
 
+        self.data_widgets = WidgetData()
+
         self.label_text : dict[str, LabelText] = {}
         self.label_texture = {}
-        self.bottoni = {}
+        self.bottoni : dict[str, Button] = {}
         self.entrate = {}
         self.radio = {}
         self.scrolls = {}
@@ -199,6 +201,19 @@ class DefaultScene:
         self.label_text["debug5"] = LabelText(self.parametri_repeat_elementi, self.fonts["grande"], w=25, h=4, x=69.25, y=80, text="Empty!")
         self.schermo["viewport"] = Schermo(self.parametri_repeat_elementi)
         
+        self.bottoni["ren_mode"] = Button(self.parametri_repeat_elementi, self.fonts["grande"], text="Render Mode", w=12, h=4, x=82.25, y=90)
+        self.bottoni["foglie"] = Button(self.parametri_repeat_elementi, self.fonts["grande"], text="Foglie", w=12, h=4, x=69.25, y=90)
+
+    def collect_data(self) -> None:
+        self.data_widgets.foglie = self.bottoni["foglie"].toggled
+        self.data_widgets.render_mode = self.bottoni["ren_mode"].toggled
+
+class WidgetData:
+    def __init__(self) -> None:
+        self.foglie: bool = False
+        self.render_mode: bool = False
+
+
 class LabelText:
     def __init__(self, parametri_locali_elementi : list, font_locale : Font, w : float = 50, h : float = 50, x : float = 0, y : float = 0, bg : tuple[int] = (40, 40, 40), renderizza_bg : bool = True, text : str = "Prova") -> None:
         '''
@@ -234,6 +249,57 @@ class LabelText:
 
     def assegna_messaggio(self, str: str = "Empty!") -> None:
         self.text = str
+
+class Button():
+    def __init__(self, parametri_locali_elementi: list, font_locale: Font, w: float = 50, h: float = 50, x: float = 0, y: float = 0, bg: tuple[int] = (40, 40, 40), renderizza_bg: bool = True, text: str = "Prova", tipologia = "toggle", toggled = False) -> None:
+        '''
+        parametri_locali_elementi dovrà contenere:
+        - schermo madre
+        - shift_x
+        - x a disposizione sullo schermo
+        - y a disposizione sullo schermo
+        '''
+        self.offset: int = parametri_locali_elementi[1]
+
+        self.moltiplicatore_x: int = parametri_locali_elementi[2]
+        self.ori_y: int = parametri_locali_elementi[3]
+        
+        self.w: float = self.moltiplicatore_x * w / 100
+        self.h: float = self.ori_y * h / 100
+        self.x: float = self.moltiplicatore_x * x / 100 + self.offset
+        self.y: float = self.ori_y * y / 100
+
+        self.bounding_box = pygame.Rect(self.x, self.y, self.w, self.h)
+
+        self.bg: tuple[int] = bg
+        self.renderizza_bg: bool = renderizza_bg
+
+        self.screen: pygame.Surface = parametri_locali_elementi[0]
+
+        self.font_locale: Font = font_locale
+        self.text: str = text
+        self.color_text: tuple[int] = (100, 100, 100)
+
+        self.tipologia = tipologia
+        self.toggled = toggled
+        self.colore_bg_schiacciato = [i+10 if i < 245 else 255 for i in self.bg]
+
+    def disegnami(self):
+        colore_scelto = self.colore_bg_schiacciato if self.toggled else self.bg
+        pygame.draw.rect(self.screen, colore_scelto, [self.x, self.y, self.w, self.h], border_top_left_radius=10, border_bottom_right_radius=10)
+        self.screen.blit(self.font_locale.font_tipo.render(f"{self.text}", True, self.color_text), (self.x + self.w // 2 - len(self.text) * self.font_locale.font_pixel_dim[0] // 2, self.y + self.h // 2 - self.font_locale.font_pixel_dim[1] // 2))
+
+    def selezionato_bot(self, event):
+            
+        if self.bounding_box.collidepoint(event.pos):
+            if self.toggled:
+                self.toggled = False
+            else:
+                self.toggled = True
+
+    def push(self):
+        if self.toggled and self.tipologia == "push":
+            self.toggled = False
 
 class Schermo:
     def __init__(self, parametri_locali_elementi : list) -> None:
