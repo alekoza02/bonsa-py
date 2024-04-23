@@ -66,7 +66,6 @@ class Albero:
         ''' TODO
         - spawn rami secondari su rami vecchi (prima delle biforcazioni)
         - diminuire spawn in zone affollate 
-        - scrivere routine morte ramo basso
         - generare posizione/orientamento foglie e chiedere ad Ale di visualizzarle
         - orientare le gemme alla nascita del nodo successivo
         '''
@@ -75,17 +74,19 @@ class Albero:
         self.mess4 = f"{self.iterazioni = }"
         self.mess5 = f"segmenti: {len(self.segmenti)}"
 
-        if len(self.segmenti) > 5000:
-            return self.nodi,self.segmenti
-            #return nodi_v,segm_v
-
+        if len(self.segmenti) > 5000: 
+            if data_widget.render_mode:
+                return self.nodi_v,self.segm_v
+            else:
+                return self.nodi,self.segmenti
+            
 
         # STEP 1 - CRESCITA GENERALE DI TUTTI I SEGMENTI
 
         # Tutti i segmenti crescono in larghezza ad ogni ciclo
         self.segmenti[:,self.C_SPESS] += self.crescita_l
 
-        # Tendenza dei rami a piegarsi sotto il loro stesso peso
+        # Tendenza dei rami a piegarsi sotto il loro stesso peso # DISABILITATO
         # self.piega_segmento(self.segmenti)
         
         # STEP 2 - ALLUNGAMENTO SEGMENTI TERMINALI  (quelli di lunghezza inferiore a 10)
@@ -171,17 +172,22 @@ class Albero:
 
             # scelta del nodo da gemmare
             for l_rametto in l_rametti:
-                rand=abs(random.gauss(0,1))
+                # numero casuale con distribuzione gaussiana media=0 sigma=1
+                # normalizzo da 0-2 a 0-1 (/2)
+                rand=abs(random.gauss(0,1))/2
+                
                 if rand >= 1:
-                    # se troppo grande metto al minimo
-                    rand = 0
+                    # se troppo grande (1-2*sigma = 5% dei casi) metto al minimo (1)
+                    intrand = 1
                 else:
-                    rand = int(rand*(len(l_rametto)-2))
-                
-                
-                rand=rand+1
+                    intrand = int(rand*(len(l_rametto)))
 
-                ai_nodi_scelti = np.append(ai_nodi_scelti,l_rametto[rand])
+                
+                # No nodo terminale (0)
+                if intrand == 0:
+                    intrand=1
+
+                ai_nodi_scelti = np.append(ai_nodi_scelti,l_rametto[intrand])
 
             a_nodi_scelti = self.nodi[ai_nodi_scelti]            
 
@@ -345,10 +351,10 @@ class Albero:
             segm_visua3[:,:2] += 2*len(self.segmenti)+2  
             segm_visua4[:,:2] += 3*len(self.segmenti)+3  
 
-            nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
-            segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
+            self.nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
+            self.segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
 
-            return nodi_v,segm_v
+            return self.nodi_v,self.segm_v
         
         else:
             return self.nodi,self.segmenti
