@@ -14,7 +14,7 @@ class Albero:
         self.nodi = np.array([[0.,0.,0.],[0.,0.,1.]])   # primi due nodi
         # le coordinate possono essere accedute tramite le costanti C_X, C_Y, C_Z
         self.C_X, self.C_Y, self.C_Z = 0,1,2
-        self.C_ALTEZZA_DAL_SUOLO=self.C_Z # alias parlante 
+        self.C_ALTEZZA_DAL_SUOLO=self.C_Z # alias parlante per la coordinata z 
 
         # segmenti è un array numpy che contiene: 
         #   - indice nodo di origine --> C_ORIG
@@ -27,7 +27,7 @@ class Albero:
         self.segmenti = np.array([[0, 1, 1, self.C_spess_iniz]])
 
         # Rami è un array numpy che contiene le sequenze di indici dei segmenti che formano rami (e sottorami)
-        self.rami = [[0,1]]
+        # self.rami = [[0,1]]
 
 
         ####  IMPOSTAZIONI DI CRESCITA  ####
@@ -36,7 +36,7 @@ class Albero:
         # crescita in larghezza
         self.crescita_l = .001
         # tendenza verso l'alto dei rami nuovi
-        self.alto = .0001
+        self.alto = .0005
         # tendenza verso il basso dei rami vecchi
         self.basso = -.001
         # massima variazione di angolo iniziale rispetto al ramo padre
@@ -53,6 +53,7 @@ class Albero:
         # interazioni di crescita
         self.iterazioni = 0
 
+        # Messaggi personalizzati nella GUI
         self.mess1 = ""
         self.mess2 = ""
         self.mess3 = ""
@@ -60,6 +61,8 @@ class Albero:
         self.mess5 = ""
 
 
+    # Funzione principale di crescita
+    # data_widget è l'oggetto attraverso il quale posso modificare i campi di testo personalizzati
     def crescita(self, data_widget: WidgetData):
 
     
@@ -74,12 +77,11 @@ class Albero:
         self.mess4 = f"{self.iterazioni = }"
         self.mess5 = f"segmenti: {len(self.segmenti)}"
 
-        if len(self.segmenti) > 5000: 
+        if len(self.segmenti) > 20000: 
             if data_widget.render_mode:
                 return self.nodi_v,self.segm_v
             else:
                 return self.nodi,self.segmenti
-            
 
         # STEP 1 - CRESCITA GENERALE DI TUTTI I SEGMENTI
 
@@ -119,7 +121,6 @@ class Albero:
 
             # 3.2) NUOVI SEGMENTI
 
-            # a_indici,a_gemme = ricalcolo_array_gemme (self.segmenti)
             a_indici,a_gemme = self.ricalcolo_array_gemme()
             a_orig = np.array([a_indici[a_filtro]])
             a_dest = np.array([np.arange(len(self.nodi),len(self.nodi)+len(nuovi_nodi))])
@@ -144,14 +145,13 @@ class Albero:
         # STEP 4 - GENERAZIONE NUOVI RAMI SECONDARI 
 
         # Aggiornamento gemme
-        # a_indici,a_gemme = ricalcolo_array_gemme (segmenti)
         a_indici,a_gemme = self.ricalcolo_array_gemme()
 
-        # Compongo l'array di sequenze di segmenti che vanno dalle punte alle biforcazioni (parti di ramo)
-        l_rametti=[]
-        for nodo in a_indici[a_gemme == 1][1:]:
-        
-            i_nodo = int(nodo)
+        # Compongo la lista di sequenze di indici di nodi che vanno dalle punte alle biforcazioni (parti di ramo)
+        l_sequenze=[]
+
+        # parto dal nodo 1 (il nodo 0 è la radice)
+        for i_nodo in a_indici[a_gemme == 1][1:]:
             
             # Promemoria
             # Il ramo n è il ramo che ha come destinazione il nodo n+1
@@ -163,36 +163,87 @@ class Albero:
                 sequenza.append(i_nodo)
 
             if len(sequenza) > 20:
-                l_rametti.append(sequenza)
+                l_sequenze.append(sequenza)
 
-
-        if l_rametti:
+        if l_sequenze:
 
             ai_nodi_scelti=np.empty(0,dtype=int)
+            a_angoli_rsp=np.empty(0,dtype=float)
 
-            # scelta del nodo da gemmare
-            for l_rametto in l_rametti:
+            # SCELTA DEL NODO DA GEMMARE
+
+            for l_sequenza in l_sequenze:
                 # numero casuale con distribuzione gaussiana media=0 sigma=1
                 # normalizzo da 0-2 a 0-1 (/2)
                 rand=abs(random.gauss(0,1))/2
                 
+                # intrand = random intero da 1 alla lunghezza della sequenza 
+                # corrisponde all'indice del nodo da gemmare 
+                # (all'interno della sequenza, non all'interno dell'array dei nodi)  
                 if rand >= 1:
                     # se troppo grande (1-2*sigma = 5% dei casi) metto al minimo (1)
                     intrand = 1
                 else:
-                    intrand = int(rand*(len(l_rametto)))
+                    intrand = int(rand*(len(l_sequenza)))
 
-                
                 # No nodo terminale (0)
                 if intrand == 0:
                     intrand=1
 
-                ai_nodi_scelti = np.append(ai_nodi_scelti,l_rametto[intrand])
+                # seleziono l'indice del nodo scelto all'interno della sequenza
+                i_nodo_scelto = l_sequenza[intrand]
+
+                # Aggiungo il nodo scelto all'array (di indici) dei nodi scelti
+                ai_nodi_scelti = np.append(ai_nodi_scelti, i_nodo_scelto)
+                
+                # indice del nodo di biforcazione da cui inizia la sequenza (è l'ultimo della lista)
+                i_inizio_sequenza = l_sequenza[-1]
+                i_secondo_sequenza = l_sequenza[-2]
+
+                # Se il nodo di inizio sequenza è la radice...
+                if i_inizio_sequenza == 0:
+                    angolo_rsp = 0
+                else:
+                    # segmento contenente il nodo precedente l'inizio della sequenza 
+                    # [0] serve a trasformare da 2d a 1d
+                    seg_precedente = self.segmenti[self.segmenti[:, self.C_DEST] == i_inizio_sequenza][0]
+                    # Segmento di inizio sequenza
+                    seg_inizio_sequenza = self.segmenti[self.segmenti[:,self.C_DEST] == i_secondo_sequenza][0]
+                    
+                    # ordine del ramo nel segmento precedente l'inizio della sequenza
+                    ordine_precedente = seg_precedente[self.C_ORDINE]
+                    # ordine del ramo nel segmento di inizio sequenza
+                    ordine_inizio_sequenza = seg_inizio_sequenza[self.C_ORDINE]
+                    
+                    # Compongo l'array degli angoli orizzontali dei rami secondari precedenti
+                    # Se questo è il primo ramo secondario del ramo corrente allora imposto 0
+                    if ordine_inizio_sequenza != ordine_precedente:
+                        # questo è il primo ramo secondario del ramo corrente: spawn casuale
+                        angolo_rsp = 0
+                    else:
+                        # questo non è il primo ramo secondario del ramo corrente
+                        # quindi calcolo l'angolo del ramo secondario precedente
+                        # cart_to_sphere restituisce ro, theta e phi. Uso [1] per selezionare theta
+
+                        # Le condizioni per individuare il segmento che dà origine al rsp sono:
+                        # l'origine è l'inizio sequenza...
+                        cond1 = self.segmenti[:,self.C_ORIG] == i_inizio_sequenza
+                        # e la destinazione non compare nella sequenza
+                        cond2 = ~np.isin(self.segmenti[:,self.C_DEST], l_sequenza)
+
+                        segmento_rsp = self.segmenti[cond1 & cond2][0]
+
+                        nodo_orig = segmento_rsp[self.C_ORIG].astype(int)
+                        nodo_dest = segmento_rsp[self.C_DEST].astype(int)
+                        
+                        angolo_rsp = Albero.cart_to_sphere(self.nodi[nodo_orig], self.nodi[nodo_dest])[1]
+                
+                # aggiungo angolo
+                a_angoli_rsp = np.append(a_angoli_rsp,angolo_rsp)
 
             a_nodi_scelti = self.nodi[ai_nodi_scelti]            
 
-            # costruzione array lunghezze dei segmenti (a_lung) e allungamenti (a_allu)
-            # a_lung,a_allu = ricalcolo_array_allu(nodi,segmenti)
+            # costruzione array lunghezze dei segmenti (a_lung) e array allungamenti (a_allu)
             a_lung,a_allu = self.ricalcolo_array_allu()
 
             # Composizione array dei nodi di origine partendo dai nodi di destinazione
@@ -203,29 +254,41 @@ class Albero:
             # cart_to_sphere restituisce ro(lunghezza) theta(angolo orizzontale) e phi(angolo verticale)
             a_angoli_oriz_p,a_angoli_vert_p = Albero.cart_to_sphere(a_nodi_prec,a_nodi_scelti)[1:]
 
+
             if not self.simmetria:
 
                 # Se lo spawn dei segmenti è asimmetrico ne gemmo solo uno in maniera casuale
 
                 # calcolo angoli massimi di deviazione dal padre (dipende dalla verticalità del padre)
                 a_est_angoli = a_angoli_vert_p*4
+                
                 # estensione massima angolo orizzontale dei figli = angolo verticale del padre * 4 (minimo: pi)
                 a_est_angoli[a_est_angoli < np.pi] = np.pi
-                # calcolo deviazione random
-                a_diff_angoli =  (np.random.random(len(a_angoli_oriz_p))-.5)*a_est_angoli     
-                # calcolo angolo finale (angolo orizzontale del padre + deviazione random)
-                a_angoli_oriz = a_angoli_oriz_p + a_diff_angoli
+                
+                
+                # Calcolo angolo dei nuovi rami 
+                # ottimale: opposto a rsp (rsp+pi)
+                # reale: limitato da variazione massima dal padre
+                a_angoli_oriz = a_angoli_rsp + np.pi + np.pi/4*(np.random.random()-.5)
+
+                # Se l'angolo del nuovo ramo è oltre il limite massimo di divergenza dal padre...
+                cond1 = (a_angoli_oriz < a_angoli_oriz_p +np.pi) & (a_angoli_oriz > a_angoli_oriz_p + a_est_angoli / 2.2)
+                cond2 = (a_angoli_oriz > a_angoli_oriz_p +np.pi) & (a_angoli_oriz < a_angoli_oriz_p - a_est_angoli / 2.2 + 2*np.pi)
+                
+                
+                # ... allora limito l'angolo impostando il valore massimo di variazione
+                a_angoli_oriz[cond1] = (a_angoli_oriz_p+a_est_angoli/2.2)[cond1]
+                a_angoli_oriz[cond2] = (a_angoli_oriz_p-a_est_angoli/2.2)[cond2]
 
                 # angoli verticali: da pi/4 a pi/4 + pi/8
                 a_angoli_vert = np.random.random(len(a_angoli_vert_p))*self.angolo_range_spawn+self.angolo_min_spawn
-                
 
-                
+                # promemoria: sommare gli array come righe, poi trasporli e sommare le coordinate ai nodi scelti
                 a_nuovi_nodi = a_nodi_scelti + np.vstack((
                     np.cos(a_angoli_oriz),
                     np.sin(a_angoli_oriz),
                     np.sin(a_angoli_vert))).T
-
+                
             # se lo spawn è simmetrico gemmo doppio
             if self.simmetria:
 
@@ -276,13 +339,13 @@ class Albero:
                 ai_nodi_scelti = np.hstack((ai_nodi_scelti,ai_nodi_scelti))
                 # raddoppio array degli ordini    
                 a_ordini=np.hstack((a_ordini,a_ordini))    
-                
+
             a_nuovi_segmenti = np.vstack((
                 ai_nodi_scelti, 
                 np.arange(len(self.nodi),len(self.nodi)+len(a_nuovi_nodi)), 
                 a_ordini,
                 np.full(len(a_nuovi_nodi),self.C_spess_iniz))).T
-
+            
             self.segmenti = np.vstack((self.segmenti,a_nuovi_segmenti))
             self.nodi = np.vstack((self.nodi,a_nuovi_nodi))
                 
@@ -360,21 +423,31 @@ class Albero:
             return self.nodi,self.segmenti
 
 
+    def cart_to_sphere(coord1: np.ndarray,coord2: np.ndarray) -> np.ndarray:
+        ''' 
+        Trasforma da coordinate cartesiane a coordinate sferiche.
+        - Input: 2 numpy array (origine e destinazione) di coordinate x,y,z 
+        - Output: 1 numpy array contenente: ro (distanza), theta (angolo orizzontale) e phi (angolo verticale)
+        '''
 
-    def cart_to_sphere(C1,C2):
-        Vettori=C2-C1
-        # print(Vettori)
-        ro = np.sqrt(Vettori[:,0]**2+Vettori[:,1]**2+Vettori[:,2]**2)
-        theta = np.arctan2(Vettori[:,1],Vettori[:,0])
-        phi = np.arcsin(Vettori[:,2]/ro)
+        if coord1.ndim == 1:
+            vettori = coord2.reshape(1,-1) - coord1.reshape(1,-1)
+        else:
+            vettori = coord2 - coord1
+
+        ro = np.sqrt(vettori[:,0]**2+vettori[:,1]**2+vettori[:,2]**2)
+        theta = np.arctan2(vettori[:,1],vettori[:,0])
+        phi = np.arcsin(vettori[:,2]/ro)
+
         return ro,theta,phi
 
     def ricalcolo_array_allu(self):
-
-        # Questa funzione ricalcola gli array:
-        # - a_diff --> differenze di coordinate nodi di inizio e di fine dei segmenti 
-        # - a_lung --> lunghezze dei segmenti, basandosi sull'array a_diff
-        # - a_allu --> allungamenti dei segmenti, basandosi sugli array a_diff e a_lung
+        
+        '''
+        Questa funzione restituisce due array:
+        - a_lung --> lunghezze dei segmenti, basandosi sull'array a_diff e 
+        - a_allu --> allungamenti dei segmenti, basandosi sugli array a_diff e a_lung
+        '''
 
         C_ORIG=0
         C_DEST=1
@@ -401,10 +474,14 @@ class Albero:
 
     def ricalcolo_array_gemme(self):
 
-        # Questa funzione ricalcola gli array:
-        # - a_indici, a_gemme --> indici dei nodi e gemme dei nodi
-        # TODO: forse è il caso di fonderli in un array unico?
-    
+        '''
+        Questa funzione ricalcola gli array:
+        - a_indici --> array degli indici dei nodi
+        - a_gemme --> array delle gemme dei nodi
+
+        TODO: forse è il caso di fonderli in un array unico?
+        '''
+
         C_ORIG=0
         C_DEST=1
 
@@ -416,15 +493,18 @@ class Albero:
         # Faccio la unique+return_counts per contarli
         a_indici,a_gemme = np.unique(np.append(self.segmenti[:,C_ORIG], self.segmenti[:,C_DEST]),return_counts=True)
 
-        return a_indici,a_gemme
+        return a_indici.astype(int),a_gemme
 
     def calcolo_prosecuzione_segmenti(self):
 
-        # Questa funzione calcola gli array:
-        # - a_filtro --> filtro da applicare all'array nodi per ottenere quelli senza gemme appartenenti a rami lunghi
-        # - a_rand --> array di valori random da applicare alla crescita dei nuovi segmenti
-        # TODO: spostare il calcolo di a_rand fuori da questa funzione? Sembra poco attinente...
-    
+        '''
+        Questa funzione calcola gli array:
+        - a_filtro --> filtro da applicare all'array nodi per ottenere quelli senza gemme appartenenti a rami lunghi
+        - a_rand --> array di valori random da applicare alla crescita dei nuovi segmenti
+        
+        TODO: spostare il calcolo di a_rand fuori da questa funzione? Sembra poco attinente...
+        '''
+
         C_DEST=1
 
         # Aggiorno il conteggio delle gemme
@@ -458,7 +538,6 @@ class Albero:
         a_orig=self.nodi[a_elenco_segmenti[:,self.C_ORIG].astype(int)]
         a_dest=self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)]
         a_ro,a_theta,a_phi = Albero.cart_to_sphere (a_orig,a_dest)
-        # print("ro, th, fi: ",a_ro,a_theta,a_phi)
         
         # piego verso 0° (orizzontale)
         #a_phi *= .9999
@@ -470,17 +549,11 @@ class Albero:
         a_nuove_y = a_orig[:,self.C_Y] + a_ro * np.sin(a_theta) * np.cos(a_phi)
         a_nuove_z = a_orig[:,self.C_Z] + a_ro * np.sin(a_phi)
         
-        # print ("nuove x,y,x: ",a_nuove_x,a_nuove_y,a_nuove_z)
         a_dest = np.vstack((a_nuove_x,a_nuove_y,a_nuove_z)).T
 
 
-        # print("Prima: ",self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)])
-        # print("Dopo: ", a_dest)
-        
-
         # Calcolo le differenze di coordinate (serviranno per spostare tutti i segmenti collegati)
         a_differenze = self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] - a_dest 
-        #print(a_differenze)
 
         # Sostituisco le nuove coordinate di destinazione
         self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] = a_dest
@@ -497,7 +570,6 @@ class Albero:
             diff = a_differenze[i]
             a_segmenti_successivi = self.segmenti[self.segmenti[:,self.C_ORIG] == segmento[self.C_DEST]]
             if a_segmenti_successivi.size > 0:
-                print(a_segmenti_successivi,diff)
                 self.abbassa_ramo(a_segmenti_successivi,diff)
                 self.piega_segmento(a_segmenti_successivi)
 

@@ -112,7 +112,7 @@ def main(config: configparser):
         logica.messaggio_debug2 = f"Numero di poligoni : {len(point_cloud.verteces_ori)}"
         logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
-        logica.messaggio_debug5 = f"hehehehe"
+        logica.messaggio_debug5 = f""
         
         logica.messaggio_debug4 = albero.mess4
         logica.messaggio_debug5 = albero.mess5
