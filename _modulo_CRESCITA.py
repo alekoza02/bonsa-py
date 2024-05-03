@@ -6,25 +6,33 @@ class Albero:
     def __init__(self) -> None:
 
         # INIZIALIZZAZIONE VARIABILI
-
-        # spessore iniziale segmenti nuovi
-        self.C_spess_iniz = .2
     
-        # nodi è un array numpy di coordinate 
-        self.nodi = np.array([[0.,0.,0.],[0.,0.,1.]])   # primi due nodi
-        # le coordinate possono essere accedute tramite le costanti C_X, C_Y, C_Z
+        # a_nodi è un array numpy (float) 2D di coordinate [x,y,z]
+        self.a_nodi = np.array([[0.,0.,0.],[0.,0.,1.]])   # primi due nodi
+
+        # le coordinate possono essere accedute tramite le costanti C_X, C_Y, C_Z:
         self.C_X, self.C_Y, self.C_Z = 0,1,2
         self.C_ALTEZZA_DAL_SUOLO=self.C_Z # alias parlante per la coordinata z 
 
-        # segmenti è un array numpy che contiene: 
+        # a_segmenti è un array numpy (int) 2D che contiene: 
         #   - indice nodo di origine --> C_ORIG
         #   - indice nodo di destinazione --> C_DEST
-        #   - ordine del ramo: primario, secondario, ecc... --> C_ORDINE
-        #   - spessore --> C_SPESS
-        self.C_ORIG, self.C_DEST, self.C_ORDINE, self.C_SPESS = 0,1,2,3
+        #   - ordine del ramo: 1 (primario), 2 (secondario) , 3 ecc... --> C_ORDINE
+
+        # a_spessori è un array numpy (float) 1D che contiene gli spessori dei segmenti
+
+        # Gli elementi di a_segmenti possono essere acceduti tramite le coordinate:
+        self.C_ORIG, self.C_DEST, self.C_ORDINE = 0,1,2
 
         # Segmento di partenza
-        self.segmenti = np.array([[0, 1, 1, self.C_spess_iniz]])
+        self.a_segmenti = np.array([[0, 1, 1]])
+        
+        # spessore iniziale segmenti nuovi
+        self.C_spess_iniz = .2
+
+        # Spessore del segmento di partenza
+        self.a_spessori = np.array([self.C_spess_iniz])
+
 
         # Rami è un array numpy che contiene le sequenze di indici dei segmenti che formano rami (e sottorami)
         # self.rami = [[0,1]]
@@ -43,11 +51,10 @@ class Albero:
         # self.angolo_iniziale = np.pi/8
         # angolo minimo di spawn nuovi rami 
         self.angolo_min_spawn = np.pi/8
-        # angolo massimo di spawn nuovi rami 
+        # range massimo per l'angolo di spawn nuovi rami 
         self.angolo_range_spawn = np.pi/4
         
-
-        # simmetria (gemma doppia)
+        # simmetria (gemma doppia)  # PREVEDERE SIMMETRIE MULTIPLE? x3 x4 xN ...
         self.simmetria = False
 
         # interazioni di crescita
@@ -67,29 +74,32 @@ class Albero:
 
     
         ''' TODO
-        - spawn rami secondari su rami vecchi (prima delle biforcazioni)
-        - diminuire spawn in zone affollate 
-        - generare posizione/orientamento foglie e chiedere ad Ale di visualizzarle
-        - orientare le gemme alla nascita del nodo successivo
+        - diminuire spawn in zone affollate / aumentare morte rami affollati
+        - generare foglie (estetico)
+        - modificare la crescita in base alla posizione (rami in ombra)
+
+        - ALBERO --> BONSAI  (potatura)
         '''
         
         self.iterazioni += 1
         self.mess4 = f"{self.iterazioni = }"
-        self.mess5 = f"segmenti: {len(self.segmenti)}"
+        self.mess5 = f"segmenti: {len(self.a_segmenti)}"
 
-        if len(self.segmenti) > 20000: 
+        # BLOCCO CRESCITA A 20000 SEGMENTI
+        if len(self.a_segmenti) > 20000: 
             if data_widget.render_mode:
-                return self.nodi_v,self.segm_v
+                aggiungi_spessori(self)
+                return self.a_nodi_v,self.a_segm_v
             else:
-                return self.nodi,self.segmenti
+                return self.a_nodi,self.a_segmenti
 
         # STEP 1 - CRESCITA GENERALE DI TUTTI I SEGMENTI
 
         # Tutti i segmenti crescono in larghezza ad ogni ciclo
-        self.segmenti[:,self.C_SPESS] += self.crescita_l
+        self.a_spessori += self.crescita_l
 
         # Tendenza dei rami a piegarsi sotto il loro stesso peso # DISABILITATO
-        # self.piega_segmento(self.segmenti)
+        # self.piega_segmento(self.a_segmenti)
         
         # STEP 2 - ALLUNGAMENTO SEGMENTI TERMINALI  (quelli di lunghezza inferiore a 10)
 
@@ -97,7 +107,7 @@ class Albero:
         self.a_lung, self.a_allu = self.ricalcolo_array_allu()
  
         # allungo segmenti con lunghezza < 10
-        self.nodi[self.segmenti[self.a_lung < 10,self.C_DEST].astype(np.int32)] += self.a_allu[self.a_lung < 10]
+        self.a_nodi[self.a_segmenti[self.a_lung < 10,self.C_DEST]] += self.a_allu[self.a_lung < 10]
 
 
         # STEP 3 - CREAZIONE NUOVI SEGMENTI TERMINALI
@@ -115,24 +125,29 @@ class Albero:
 
             # Estendo array degli allungamenti per applicarlo ai nodi (nodi=segmenti+1)
             a_allu_esteso = np.vstack((np.array([[0.,0.,0.]]),self.a_allu))
-
             # Creo i nuovi nodi
-            nuovi_nodi = self.nodi[ a_filtro ] + a_allu_esteso[ a_filtro ] + a_rand[ a_filtro ]
+            a_nuovi_nodi = self.a_nodi[ a_filtro ] + a_allu_esteso[ a_filtro ] + a_rand[ a_filtro ]
 
             # 3.2) NUOVI SEGMENTI
 
             a_indici,a_gemme = self.ricalcolo_array_gemme()
             a_orig = np.array([a_indici[a_filtro]])
-            a_dest = np.array([np.arange(len(self.nodi),len(self.nodi)+len(nuovi_nodi))])
-            a_ordini = np.array(self.segmenti[a_indici[a_filtro].astype(int)-1][:,self.C_ORDINE])
-            a_spess = np.full((len(nuovi_nodi)), self.C_spess_iniz)
+            a_dest = np.array([np.arange(len(self.a_nodi),len(self.a_nodi)+len(a_nuovi_nodi))])
+            a_ordini = np.array(self.a_segmenti[a_indici[a_filtro]-1][:,self.C_ORDINE])
 
             # Sommo come righe, poi traspongo con T
-            nuovi_segmenti = np.vstack([a_orig,a_dest,a_ordini,a_spess]).T
+            a_nuovi_segmenti = np.vstack([a_orig,a_dest,a_ordini]).T
 
-            # 3.3) APPEND NODI E SEGMENTI CREATI
-            self.nodi=np.vstack((self.nodi,nuovi_nodi))
-            self.segmenti=np.vstack((self.segmenti,nuovi_segmenti))
+            # 3.3) NUOVI SPESSORI
+            a_nuovi_spessori = np.full((len(a_nuovi_nodi)),self.C_spess_iniz)
+
+
+            # Aggiunta nuovi nodi a quelli esistenti
+            self.a_nodi=np.vstack((self.a_nodi,a_nuovi_nodi))
+            # Aggiunta nuovi segmenti a quelli esistenti
+            self.a_segmenti=np.vstack((self.a_segmenti,a_nuovi_segmenti))
+            # Aggiunta nuovi spessori a quelli esistenti
+            self.a_spessori=np.hstack((self.a_spessori,a_nuovi_spessori))
 
             # 3.4) AGGIORNAMENTO RAMI
             # I nuovi segmenti vanno aggiunti ai rami esistenti (dei quali sono la prosecuzione)
@@ -143,12 +158,14 @@ class Albero:
             #    self.rami.append(segmento[0:2].astype(int).tolist())
             
         # STEP 4 - GENERAZIONE NUOVI RAMI SECONDARI 
+        # Faccio spuntare nelle zone di ramo spoglie (sequenze di almeno 20 segmenti senza biforcazioni)
 
         # Aggiornamento gemme
         a_indici,a_gemme = self.ricalcolo_array_gemme()
 
         # Compongo la lista di sequenze di indici di nodi che vanno dalle punte alle biforcazioni (parti di ramo)
-        l_sequenze=[]
+        # (ll_sequenze è una lista di liste di indici di nodi)
+        ll_sequenze=[]
 
         # parto dal nodo 1 (il nodo 0 è la radice)
         for i_nodo in a_indici[a_gemme == 1][1:]:
@@ -156,23 +173,28 @@ class Albero:
             # Promemoria
             # Il ramo n è il ramo che ha come destinazione il nodo n+1
             # Il nodo n è la destinazione del ramo n-1
+            # a_gemme contiene 1 se è un nodo terminale
+            # a_gemme contiene 2 se è un nodo non terminale
+            # a_gemme contiene 3 se è un nodo con almeno una gemma
 
-            sequenza=[i_nodo]
+            l_sequenza=[i_nodo]
             while a_gemme[i_nodo] < 3 and i_nodo > 0:
-                i_nodo=int(self.segmenti[i_nodo-1,self.C_ORIG])
-                sequenza.append(i_nodo)
+                i_nodo=self.a_segmenti[i_nodo-1,self.C_ORIG]
+                l_sequenza.append(i_nodo)
 
-            if len(sequenza) > 20:
-                l_sequenze.append(sequenza)
+            if len(l_sequenza) > 20:
+                ll_sequenze.append(l_sequenza)
 
-        if l_sequenze:
+        if ll_sequenze:
 
+            # Inizializzazione array di indici dei nodi scelti per gemmare
             ai_nodi_scelti=np.empty(0,dtype=int)
+            # Inizializzazione array di angoli dei rami secondari precedenti
             a_angoli_rsp=np.empty(0,dtype=float)
 
             # SCELTA DEL NODO DA GEMMARE
 
-            for l_sequenza in l_sequenze:
+            for l_sequenza in ll_sequenze:
                 # numero casuale con distribuzione gaussiana media=0 sigma=1
                 # normalizzo da 0-2 a 0-1 (/2)
                 rand=abs(random.gauss(0,1))/2
@@ -206,9 +228,9 @@ class Albero:
                 else:
                     # segmento contenente il nodo precedente l'inizio della sequenza 
                     # [0] serve a trasformare da 2d a 1d
-                    seg_precedente = self.segmenti[self.segmenti[:, self.C_DEST] == i_inizio_sequenza][0]
+                    seg_precedente = self.a_segmenti[self.a_segmenti[:, self.C_DEST] == i_inizio_sequenza][0]
                     # Segmento di inizio sequenza
-                    seg_inizio_sequenza = self.segmenti[self.segmenti[:,self.C_DEST] == i_secondo_sequenza][0]
+                    seg_inizio_sequenza = self.a_segmenti[self.a_segmenti[:,self.C_DEST] == i_secondo_sequenza][0]
                     
                     # ordine del ramo nel segmento precedente l'inizio della sequenza
                     ordine_precedente = seg_precedente[self.C_ORDINE]
@@ -227,28 +249,28 @@ class Albero:
 
                         # Le condizioni per individuare il segmento che dà origine al rsp sono:
                         # l'origine è l'inizio sequenza...
-                        cond1 = self.segmenti[:,self.C_ORIG] == i_inizio_sequenza
+                        cond1 = self.a_segmenti[:,self.C_ORIG] == i_inizio_sequenza
                         # e la destinazione non compare nella sequenza
-                        cond2 = ~np.isin(self.segmenti[:,self.C_DEST], l_sequenza)
+                        cond2 = ~np.isin(self.a_segmenti[:,self.C_DEST], l_sequenza)
 
-                        segmento_rsp = self.segmenti[cond1 & cond2][0]
+                        segmento_rsp = self.a_segmenti[cond1 & cond2][0]
 
                         nodo_orig = segmento_rsp[self.C_ORIG].astype(int)
                         nodo_dest = segmento_rsp[self.C_DEST].astype(int)
                         
-                        angolo_rsp = Albero.cart_to_sphere(self.nodi[nodo_orig], self.nodi[nodo_dest])[1]
+                        angolo_rsp = Albero.cart_to_sphere(self.a_nodi[nodo_orig], self.a_nodi[nodo_dest])[1]
                 
                 # aggiungo angolo
                 a_angoli_rsp = np.append(a_angoli_rsp,angolo_rsp)
 
-            a_nodi_scelti = self.nodi[ai_nodi_scelti]            
+            a_nodi_scelti = self.a_nodi[ai_nodi_scelti]            
 
             # costruzione array lunghezze dei segmenti (a_lung) e array allungamenti (a_allu)
             a_lung,a_allu = self.ricalcolo_array_allu()
 
             # Composizione array dei nodi di origine partendo dai nodi di destinazione
-            ai_nodi_prec = self.segmenti[ai_nodi_scelti-1][:,self.C_ORIG].astype(np.int32)
-            a_nodi_prec = self.nodi[ai_nodi_prec]
+            ai_nodi_prec = self.a_segmenti[ai_nodi_scelti-1][:,self.C_ORIG]
+            a_nodi_prec = self.a_nodi[ai_nodi_prec]
 
             # Con nodi di origine e destinazione posso calcolare gli angoli del ramo
             # cart_to_sphere restituisce ro(lunghezza) theta(angolo orizzontale) e phi(angolo verticale)
@@ -332,7 +354,7 @@ class Albero:
                 a_nuovi_nodi = np.vstack((a_nuovi_nodi,a_nuovi_nodi2))
             
 
-            a_ordini=self.segmenti[np.where(np.isin(self.segmenti[:,self.C_DEST],ai_nodi_scelti))][:,self.C_ORDINE] + 1, 
+            a_ordini=self.a_segmenti[np.where(np.isin(self.a_segmenti[:,self.C_DEST],ai_nodi_scelti))][:,self.C_ORDINE] + 1, 
                 
             if self.simmetria:
                 # raddoppio array dei nodi di origine
@@ -342,12 +364,14 @@ class Albero:
 
             a_nuovi_segmenti = np.vstack((
                 ai_nodi_scelti, 
-                np.arange(len(self.nodi),len(self.nodi)+len(a_nuovi_nodi)), 
-                a_ordini,
-                np.full(len(a_nuovi_nodi),self.C_spess_iniz))).T
-            
-            self.segmenti = np.vstack((self.segmenti,a_nuovi_segmenti))
-            self.nodi = np.vstack((self.nodi,a_nuovi_nodi))
+                np.arange(len(self.a_nodi),len(self.a_nodi)+len(a_nuovi_nodi)), 
+                a_ordini)).T
+
+            a_nuovi_spessori = np.full(len(a_nuovi_nodi),self.C_spess_iniz)
+
+            self.a_segmenti = np.vstack((self.a_segmenti,a_nuovi_segmenti))
+            self.a_nodi = np.vstack((self.a_nodi,a_nuovi_nodi))
+            self.a_spessori = np.hstack((self.a_spessori,a_nuovi_spessori))
                 
             #for segmento in a_nuovi_segmenti:
             #    self.rami = [ ramo+[int(segmento[self.C_DEST])] if int(segmento[self.C_ORIG]) in ramo else ramo for ramo in self.rami ]
@@ -356,71 +380,55 @@ class Albero:
 
         # ALGORITMO DI PIEGAMENTO PER PESO DISABILITATO PER INEFFICIENZA
         # Si possono anche commentare le parti di codice che creano/aggiornano l'array self.rami 
-        # self.piega_segmento(self.segmenti)
+        # self.piega_segmento(self.a_segmenti)
 
         # STEP FINALE - Morte rami bassi
         # Quando l'albero diventa folto ( > 1000 segmenti)
         # inizio a rimuovere i segmenti terminali più bassi
 
-        if len(self.segmenti) > 1000:
+        if len(self.a_segmenti) > 1000:
             mi,ma = -10,3
             # probabilità di NON cancellare segmenti: -mi / (ma-mi)
             # probabilità di cancellare 1 segmento: 1 / (ma-mi)
             # probabilità di cancellare 2 segmenti: 1 / (ma-mi)
             for n in range(random.randint(-10,3)):
                 # Cerco i segmenti terminali (quelli che NON hanno i nodi di destinazione tra tutti i nodi di origine )
-                a_segmenti_terminali = self.segmenti[~np.isin(self.segmenti[:,self.C_DEST],self.segmenti[:,self.C_ORIG])]
+                a_segmenti_terminali = self.a_segmenti[~np.isin(self.a_segmenti[:,self.C_DEST],self.a_segmenti[:,self.C_ORIG])]
 
                 # Compongo array degli indici dei nodi terminali prendendo i nodi di destinazione dei segmenti terminali
-                ai_nodi_terminali = a_segmenti_terminali[:,self.C_DEST].astype(int)
+                ai_nodi_terminali = a_segmenti_terminali[:,self.C_DEST]
 
                 # Seleziono l'indice del nodo che ha la coordinata Z più bassa
                 # L'indice si riferisce all'array dei nodi terminali
-                i_nodo_piu_basso_terminale = np.argmin(self.nodi[ai_nodi_terminali,self.C_ALTEZZA_DAL_SUOLO])
+                i_nodo_piu_basso_terminale = np.argmin(self.a_nodi[ai_nodi_terminali,self.C_ALTEZZA_DAL_SUOLO])
 
                 # Seleziono l'indice del nodo da togliere
                 i_nodo_da_togliere = ai_nodi_terminali[i_nodo_piu_basso_terminale]
 
                 # Tolgo nodo
-                self.nodi = np.concatenate((self.nodi[:i_nodo_da_togliere],self.nodi[i_nodo_da_togliere+1:]))
+                self.a_nodi = np.concatenate((self.a_nodi[:i_nodo_da_togliere],self.a_nodi[i_nodo_da_togliere+1:]))
 
-                # Tolgo segmento
-                self.segmenti = self.segmenti[self.segmenti[:,self.C_DEST] != float(i_nodo_da_togliere)]
+                # Tolgo segmento e spessore relativo
+
+                filtro = self.a_segmenti[:,self.C_DEST] != i_nodo_da_togliere
+                self.a_segmenti = self.a_segmenti[filtro]
+                self.a_spessori = self.a_spessori[filtro]
 
                 # Riaggiusto i puntamenti dei segmenti
-                self.segmenti[:,:2][self.segmenti[:,:2] > i_nodo_da_togliere] -=1
+                self.a_segmenti[:,:2][self.a_segmenti[:,:2] > i_nodo_da_togliere] -=1
+
+
 
         # PROVA DI AGGIUNTA POLIGONI
 
         # SPESSORE
 
         if data_widget.render_mode:
-            nodi_visua1 = self.nodi.copy()
-            nodi_visua2 = self.nodi.copy()
-            nodi_visua3 = self.nodi.copy()
-            nodi_visua4 = self.nodi.copy()
-            nodi_visua2[0,self.C_X] += self.segmenti[0,self.C_SPESS]
-            nodi_visua2[1:,self.C_X] += self.segmenti[:,self.C_SPESS]
-            nodi_visua3[0,self.C_Y] += self.segmenti[0,self.C_SPESS]
-            nodi_visua3[1:,self.C_Y] += self.segmenti[:,self.C_SPESS]
-            nodi_visua4[0,self.C_Z] += self.segmenti[0,self.C_SPESS]
-            nodi_visua4[1:,self.C_Z] += self.segmenti[:,self.C_SPESS]
-            
-            segm_visua1 = self.segmenti.copy()
-            segm_visua2 = self.segmenti.copy()
-            segm_visua3 = self.segmenti.copy()
-            segm_visua4 = self.segmenti.copy()
-            segm_visua2[:,:2] += len(self.segmenti)+1  
-            segm_visua3[:,:2] += 2*len(self.segmenti)+2  
-            segm_visua4[:,:2] += 3*len(self.segmenti)+3  
-
-            self.nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
-            self.segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
-
-            return self.nodi_v,self.segm_v
+            aggiungi_spessori(self)
+            return self.a_nodi_v,self.a_segm_v
         
         else:
-            return self.nodi,self.segmenti
+            return self.a_nodi,self.a_segmenti
 
 
     def cart_to_sphere(coord1: np.ndarray,coord2: np.ndarray) -> np.ndarray:
@@ -455,7 +463,7 @@ class Albero:
         Z=2 # La coordinata Z è la colonna 2 dell'array nodi
 
         # array differenze di coordinate
-        a_diff=self.nodi[self.segmenti[:,self.C_DEST].astype(int)]-self.nodi[self.segmenti[:,self.C_ORIG].astype(int)]
+        a_diff=self.a_nodi[self.a_segmenti[:,self.C_DEST]]-self.a_nodi[self.a_segmenti[:,self.C_ORIG]]
         
         # array lunghezze dei vettori corrispondenti alle coordinate
         a_lung=np.linalg.norm(a_diff,axis=1)
@@ -466,8 +474,8 @@ class Albero:
         # allungamento proporzionale alla crescita_a (alterazione temporale)
         # allungamento proporzionale all'altezza dal suolo (1/100)
 
-        a_allu = a_diff / a_lung[:,None] / self.segmenti[:,C_ORDINE][:,None] * self.crescita_a
-        a_allu *= (1+ self.nodi[self.segmenti[:,C_DEST].astype(int),Z][:,None] /1000) 
+        a_allu = a_diff / a_lung[:,None] / self.a_segmenti[:,C_ORDINE][:,None] * self.crescita_a
+        a_allu *= (1+ self.a_nodi[self.a_segmenti[:,C_DEST].astype(int),Z][:,None] /1000) 
         #a_allu[:,2] -= .0001 
 
         return a_lung,a_allu 
@@ -491,9 +499,10 @@ class Albero:
         # Sommo tutti i nodi che trovo sia come origine che come destinazione
         # fondendo colonne 0 e 1 (C_ORIG e C_DEST)
         # Faccio la unique+return_counts per contarli
-        a_indici,a_gemme = np.unique(np.append(self.segmenti[:,C_ORIG], self.segmenti[:,C_DEST]),return_counts=True)
 
-        return a_indici.astype(int),a_gemme
+        a_indici,a_gemme = np.unique(np.append(self.a_segmenti[:,C_ORIG], self.a_segmenti[:,C_DEST]),return_counts=True)
+
+        return a_indici,a_gemme
 
     def calcolo_prosecuzione_segmenti(self):
 
@@ -518,7 +527,7 @@ class Albero:
         a_filtro_gemme = a_gemme == 1
 
         # Array "filtro" contenente gli indici dei nodi terminali di segmenti lunghi
-        a_filtro_lunghi = self.segmenti[self.a_lung > 10,C_DEST].astype(np.int32)
+        a_filtro_lunghi = self.a_segmenti[self.a_lung > 10,C_DEST]
 
         # a_filtro_lunghi --> array indici dei nodi teminali di segmenti lunghi
         # a_filtro_gemme  
@@ -535,8 +544,8 @@ class Albero:
     def piega_segmento(self,a_elenco_segmenti):
 
         # calcolo coordinate polari dei nodi dei segmenti da piegare
-        a_orig=self.nodi[a_elenco_segmenti[:,self.C_ORIG].astype(int)]
-        a_dest=self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)]
+        a_orig=self.a_nodi[a_elenco_segmenti[:,self.C_ORIG]]
+        a_dest=self.a_nodi[a_elenco_segmenti[:,self.C_DEST]]
         a_ro,a_theta,a_phi = Albero.cart_to_sphere (a_orig,a_dest)
         
         # piego verso 0° (orizzontale)
@@ -553,13 +562,13 @@ class Albero:
 
 
         # Calcolo le differenze di coordinate (serviranno per spostare tutti i segmenti collegati)
-        a_differenze = self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] - a_dest 
+        a_differenze = self.a_nodi[a_elenco_segmenti[:,self.C_DEST]] - a_dest 
 
         # Sostituisco le nuove coordinate di destinazione
-        self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] = a_dest
+        self.a_nodi[a_elenco_segmenti[:,self.C_DEST]] = a_dest
 
         # I segmenti successivi sono quelli che hanno come origine i nodi di destinazione dei segmenti attuali
-        # a_segmenti_successivi=self.segmenti[self.segmenti[:,self.C_ORIG] == a_elenco_segmenti[:,self.C_DEST]]
+        # a_segmenti_successivi=self.a_segmenti[self.a_segmenti[:,self.C_ORIG] == a_elenco_segmenti[:,self.C_DEST]]
 
         # Per ogni segmento cerco i successivi, 
         # li abbasso di quanto si è abbassato il nodo di destinazione e
@@ -568,18 +577,39 @@ class Albero:
         for i in range(a_elenco_segmenti.shape[0]):
             segmento = a_elenco_segmenti[i]
             diff = a_differenze[i]
-            a_segmenti_successivi = self.segmenti[self.segmenti[:,self.C_ORIG] == segmento[self.C_DEST]]
+            a_segmenti_successivi = self.a_segmenti[self.a_segmenti[:,self.C_ORIG] == segmento[self.C_DEST]]
             if a_segmenti_successivi.size > 0:
                 self.abbassa_ramo(a_segmenti_successivi,diff)
                 self.piega_segmento(a_segmenti_successivi)
 
 
     def abbassa_ramo(self, a_elenco_segmenti, differenze):
-        print ("Abbasso",a_elenco_segmenti)
-        self.nodi[a_elenco_segmenti[:,self.C_DEST].astype(int)] += differenze
-        a_segmenti_successivi = self.segmenti[np.in1d(self.segmenti[:,self.C_ORIG], a_elenco_segmenti[:,self.C_DEST])]
+        self.a_nodi[a_elenco_segmenti[:,self.C_DEST]] += differenze
+        a_segmenti_successivi = self.a_segmenti[np.in1d(self.a_segmenti[:,self.C_ORIG], a_elenco_segmenti[:,self.C_DEST])]
         if a_segmenti_successivi.size > 0:
             self.abbassa_ramo(a_segmenti_successivi,differenze)
 
             
+def aggiungi_spessori(self):
+    nodi_visua1 = self.a_nodi.copy()
+    nodi_visua2 = self.a_nodi.copy()
+    nodi_visua3 = self.a_nodi.copy()
+    nodi_visua4 = self.a_nodi.copy()
+    nodi_visua2[0,0] += self.a_spessori[0]
+    nodi_visua2[1:,0] += self.a_spessori
+    nodi_visua3[0,1] += self.a_spessori[0]
+    nodi_visua3[1:,1] += self.a_spessori
+    nodi_visua4[0,2] += self.a_spessori[0]
+    nodi_visua4[1:,2] += self.a_spessori
+    
+    segm_visua1 = self.a_segmenti.copy()
+    segm_visua2 = self.a_segmenti.copy()
+    segm_visua3 = self.a_segmenti.copy()
+    segm_visua4 = self.a_segmenti.copy()
+    segm_visua2[:,:2] += len(self.a_segmenti)+1  
+    segm_visua3[:,:2] += 2*len(self.a_segmenti)+2  
+    segm_visua4[:,:2] += 3*len(self.a_segmenti)+3  
+
+    self.a_nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
+    self.a_segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
 
