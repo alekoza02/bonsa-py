@@ -40,7 +40,7 @@ def main(config: configparser):
         # impostazione inizio giro
         ui.clock.tick(ui.max_fps)
         ui.colora_bg()
-        ui.mouse_icon(logica)
+        # ui.mouse_icon(logica)
 
         logica.dt += 1
         logica.dragging_dx = 0
@@ -109,11 +109,16 @@ def main(config: configparser):
 
         # set messaggi debug
         logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
-        logica.messaggio_debug2 = f"Numero di poligoni : {len(point_cloud.verteces_ori)}"
-        logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
+        # logica.messaggio_debug2 = f"Numero di poligoni : {len(point_cloud.verteces_ori)}"
+        try:
+            logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
+        except:
+            logica.messaggio_debug3 = f"Errore in calcolo Altezza approssimativa"
+            print(point_cloud.verteces_ori)
         logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
         logica.messaggio_debug5 = f""
         
+        logica.messaggio_debug2 = albero.mess2
         logica.messaggio_debug4 = albero.mess4
         logica.messaggio_debug5 = albero.mess5
         
@@ -132,7 +137,7 @@ def main(config: configparser):
         # UI ----------------------------------------------------------------
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
-        ui.mouse_icon(logica)   # lanciato due volte per evitare flickering a bassi FPS
+        # ui.mouse_icon(logica)   # lanciato due volte per evitare flickering a bassi FPS
         ui.aggiornamento_e_uscita_check()
         
 if __name__ == "__main__":

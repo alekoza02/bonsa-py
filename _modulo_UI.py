@@ -62,8 +62,8 @@ class UI:
         scale_factor = ctypes.windll.shcore.GetScaleFactorForDevice(0) / 100
 
         # custom mouse
-        pygame.mouse.set_visible(False)
-        self.custom_mouse_icon = pygame.image.load("TEXTURES\mouse.png")
+        # pygame.mouse.set_visible(False)
+        # self.custom_mouse_icon = pygame.image.load("TEXTURES\mouse.png")
 
         # impostazione dimensione schermi e rapporti
         self.w : int = int(screen_info.current_w * scale_factor)

@@ -40,17 +40,17 @@ class Albero:
 
         ####  IMPOSTAZIONI DI CRESCITA  ####
         # crescita in altezza
-        self.crescita_a = .05
+        self.crescita_a = .2
         # crescita in larghezza
-        self.crescita_l = .001
+        self.crescita_l = .002
         # tendenza verso l'alto dei rami nuovi
-        self.alto = .0005
+        self.alto = .001
         # tendenza verso il basso dei rami vecchi
         self.basso = -.001
         # massima variazione di angolo iniziale rispetto al ramo padre
         # self.angolo_iniziale = np.pi/8
         # angolo minimo di spawn nuovi rami 
-        self.angolo_min_spawn = np.pi/8
+        self.angolo_min_spawn = np.pi/4
         # range massimo per l'angolo di spawn nuovi rami 
         self.angolo_range_spawn = np.pi/4
         
@@ -76,17 +76,17 @@ class Albero:
         ''' TODO
         - diminuire spawn in zone affollate / aumentare morte rami affollati
         - generare foglie (estetico)
-        - modificare la crescita in base alla posizione (rami in ombra)
+        - modificare la crescita e la direzione di spawn in base alla posizione (rami in ombra)
 
         - ALBERO --> BONSAI  (potatura)
         '''
         
         self.iterazioni += 1
-        self.mess4 = f"{self.iterazioni = }"
+        self.mess4 = f"iterazioni: {self.iterazioni}"
         self.mess5 = f"segmenti: {len(self.a_segmenti)}"
 
-        # BLOCCO CRESCITA A 20000 SEGMENTI
-        if len(self.a_segmenti) > 20000: 
+        # BLOCCO CRESCITA A 30000 SEGMENTI
+        if len(self.a_segmenti) > 30000: 
             if data_widget.render_mode:
                 aggiungi_spessori(self)
                 return self.a_nodi_v,self.a_segm_v
@@ -101,18 +101,23 @@ class Albero:
         # Tendenza dei rami a piegarsi sotto il loro stesso peso # DISABILITATO
         # self.piega_segmento(self.a_segmenti)
         
-        # STEP 2 - ALLUNGAMENTO SEGMENTI TERMINALI  (quelli di lunghezza inferiore a 10)
+        # STEP 2 - ALLUNGAMENTO SEGMENTI TERMINALI  
+        # Se il segmento ha una lunghezza inferiore a 20 cresce ancora (se è superiore spunta un nuovo segmento)
+        # Guardo quanti segmenti terminali (foglie) ci sono nella direzione di crescita.
+        # Se sono pochi, cresco poco (segmento molto illuminato)
+        # Se sono molti, cresco di più per cercare la luce, ma facilmente nel successivo controllo illuminazione
+        # verrà probabilmente eliminato
 
         # costruzione array lunghezze dei segmenti (a_lung) e allungamenti (a_allu)
         self.a_lung, self.a_allu = self.ricalcolo_array_allu()
  
-        # allungo segmenti con lunghezza < 10
-        self.a_nodi[self.a_segmenti[self.a_lung < 10,self.C_DEST]] += self.a_allu[self.a_lung < 10]
+        # allungo segmenti con lunghezza < 20
+        self.a_nodi[self.a_segmenti[self.a_lung < 20,self.C_DEST]] += self.a_allu[self.a_lung < 20]
 
 
         # STEP 3 - CREAZIONE NUOVI SEGMENTI TERMINALI
         #  Creazione nuovi segmenti che sono la prosecuzione dei segmenti terminali
-        #  I requisiti per far iniziare un nuovo segmento sono: lunghezza segmento padre > 10 e numero gemme = 0 
+        #  I requisiti per far iniziare un nuovo segmento sono: lunghezza segmento padre > 20 e numero gemme = 0 
         a_filtro, a_rand = self.calcolo_prosecuzione_segmenti()
         
         # Se le condizioni di spawn nuovi segmenti esistono almeno per un nodo, creo il nuovo segmento
@@ -155,7 +160,7 @@ class Albero:
             #for segmento in nuovi_segmenti:
             #    self.rami = [ ramo+[int(segmento[self.C_DEST])] if int(segmento[self.C_ORIG]) in ramo else ramo for ramo in self.rami ]
             #for segmento in nuovi_segmenti:
-            #    self.rami.append(segmento[0:2].astype(int).tolist())
+            #    self.rami.append(segmento[0:2].tolist())
             
         # STEP 4 - GENERAZIONE NUOVI RAMI SECONDARI 
         # Faccio spuntare nelle zone di ramo spoglie (sequenze di almeno 20 segmenti senza biforcazioni)
@@ -203,7 +208,7 @@ class Albero:
                 # corrisponde all'indice del nodo da gemmare 
                 # (all'interno della sequenza, non all'interno dell'array dei nodi)  
                 if rand >= 1:
-                    # se troppo grande (1-2*sigma = 5% dei casi) metto al minimo (1)
+                    # se troppo grande (1 - 2*sigma = 5% dei casi) metto al minimo (1)
                     intrand = 1
                 else:
                     intrand = int(rand*(len(l_sequenza)))
@@ -255,8 +260,8 @@ class Albero:
 
                         segmento_rsp = self.a_segmenti[cond1 & cond2][0]
 
-                        nodo_orig = segmento_rsp[self.C_ORIG].astype(int)
-                        nodo_dest = segmento_rsp[self.C_DEST].astype(int)
+                        nodo_orig = segmento_rsp[self.C_ORIG]
+                        nodo_dest = segmento_rsp[self.C_DEST]
                         
                         angolo_rsp = Albero.cart_to_sphere(self.a_nodi[nodo_orig], self.a_nodi[nodo_dest])[1]
                 
@@ -284,8 +289,11 @@ class Albero:
                 # calcolo angoli massimi di deviazione dal padre (dipende dalla verticalità del padre)
                 a_est_angoli = a_angoli_vert_p*4
                 
+                #print("Angoli vert p: ",a_angoli_vert_p)
+                #print("est angoli: ",a_est_angoli)
                 # estensione massima angolo orizzontale dei figli = angolo verticale del padre * 4 (minimo: pi)
                 a_est_angoli[a_est_angoli < np.pi] = np.pi
+                #print("Controllo:",a_est_angoli)
                 
                 
                 # Calcolo angolo dei nuovi rami 
@@ -376,46 +384,78 @@ class Albero:
             #for segmento in a_nuovi_segmenti:
             #    self.rami = [ ramo+[int(segmento[self.C_DEST])] if int(segmento[self.C_ORIG]) in ramo else ramo for ramo in self.rami ]
             #for segmento in a_nuovi_segmenti:
-            #    self.rami.append(segmento[0:2].astype(int).tolist())
+            #    self.rami.append(segmento[0:2].tolist())
 
         # ALGORITMO DI PIEGAMENTO PER PESO DISABILITATO PER INEFFICIENZA
         # Si possono anche commentare le parti di codice che creano/aggiornano l'array self.rami 
         # self.piega_segmento(self.a_segmenti)
 
-        # STEP FINALE - Morte rami bassi
-        # Quando l'albero diventa folto ( > 1000 segmenti)
-        # inizio a rimuovere i segmenti terminali più bassi
 
-        if len(self.a_segmenti) > 1000:
-            mi,ma = -10,3
-            # probabilità di NON cancellare segmenti: -mi / (ma-mi)
-            # probabilità di cancellare 1 segmento: 1 / (ma-mi)
-            # probabilità di cancellare 2 segmenti: 1 / (ma-mi)
-            for n in range(random.randint(-10,3)):
-                # Cerco i segmenti terminali (quelli che NON hanno i nodi di destinazione tra tutti i nodi di origine )
-                a_segmenti_terminali = self.a_segmenti[~np.isin(self.a_segmenti[:,self.C_DEST],self.a_segmenti[:,self.C_ORIG])]
+        # MORTE RAMETTI PER SOVRAFFOLLAMENTO
 
-                # Compongo array degli indici dei nodi terminali prendendo i nodi di destinazione dei segmenti terminali
-                ai_nodi_terminali = a_segmenti_terminali[:,self.C_DEST]
+        # TODO
+        # - MODIFICARE ALGORITMO PER NON CONSIDERARE OMBREGGIATI SE C'E' UNA PARTE NON OMBREGGIATA (LATERALI)
+        # - MISURARE PERFORMANCE CON DUE SISTEMI DIVERSI
+        # 1) RICERCA DEI SEGMENTI TERMINALI come segmenti che non hanno i nodi di destinazione tra tutti i nodi di origine
+        # 2) RICERCA DEI NODI TERMIALI come nodi che hanno il numero di gemme = 0  
 
-                # Seleziono l'indice del nodo che ha la coordinata Z più bassa
-                # L'indice si riferisce all'array dei nodi terminali
-                i_nodo_piu_basso_terminale = np.argmin(self.a_nodi[ai_nodi_terminali,self.C_ALTEZZA_DAL_SUOLO])
+        # Cerco i segmenti terminali (quelli che NON hanno i nodi di destinazione tra tutti i nodi di origine )
+        a_segmenti_terminali = self.a_segmenti[~np.isin(self.a_segmenti[:,self.C_DEST],self.a_segmenti[:,self.C_ORIG])]
 
-                # Seleziono l'indice del nodo da togliere
-                i_nodo_da_togliere = ai_nodi_terminali[i_nodo_piu_basso_terminale]
+        # Compongo array degli indici dei nodi terminali prendendo i nodi di destinazione dei segmenti terminali
+        ai_nodi_terminali = a_segmenti_terminali[:,self.C_DEST]
 
-                # Tolgo nodo
-                self.a_nodi = np.concatenate((self.a_nodi[:i_nodo_da_togliere],self.a_nodi[i_nodo_da_togliere+1:]))
+        # CALCOLO ZONE AFFOLLATE
+        # Per ogni gemma calcolo quante gemme si trovano in un cono rovesciato al di sopra di essa
+                
+        l_ombre = []
 
-                # Tolgo segmento e spessore relativo
+        # per ogni gemma calcolo l'ombreggiatura
+        for i in ai_nodi_terminali:
+            ombra = 0
+            for j in ai_nodi_terminali:
+                ro,theta,phi = Albero.cart_to_sphere(self.a_nodi[i],self.a_nodi[j])
+                # se esiste un nodo terminale ("foglia") in un angolo verticale compreso tra +- pi/4... 
+                if phi > np.pi/4 and phi < np.pi/4*3:
+                    # ... considero la gemma come "ombreggiata"
+                    ombra += 1
+            l_ombre.append(ombra)
 
-                filtro = self.a_segmenti[:,self.C_DEST] != i_nodo_da_togliere
-                self.a_segmenti = self.a_segmenti[filtro]
-                self.a_spessori = self.a_spessori[filtro]
+    
+        # cerco il nodo più ombreggiato
+        massima_ombra = max(l_ombre)
 
-                # Riaggiusto i puntamenti dei segmenti
-                self.a_segmenti[:,:2][self.a_segmenti[:,:2] > i_nodo_da_togliere] -=1
+        self.mess2 = f"Massima ombra: {massima_ombra}"
+
+        if massima_ombra > 10:
+            # individuo l'indice del nodo da togliere all'interno dell'array dei nodi terminali
+            # (scelgo l'ombra massima nella lista ombre, prendo il suo indice e lo uso
+            # sull'array degli indici dei nodi terminali) 
+            i_nodo_da_togliere = ai_nodi_terminali[l_ombre.index(max(l_ombre))]
+
+            print("Nodo da togliere: ",i_nodo_da_togliere)
+
+            # ricorda: il nodo N è il nodo di destinazione del segmento N-1
+            i_padre_nodo_da_togliere = self.a_segmenti[i_nodo_da_togliere-1,self.C_ORIG]
+
+            print("padre nodo da togliere: ",i_padre_nodo_da_togliere)
+
+
+            # Tolgo nodo, segmento e spessore
+            self.a_nodi = np.delete(self.a_nodi,i_nodo_da_togliere,axis=0)
+            self.a_segmenti = np.delete(self.a_segmenti,i_nodo_da_togliere-1,axis=0)
+            self.a_spessori = np.delete(self.a_spessori,i_nodo_da_togliere-1,axis=0)
+            # Riaggiusto i puntamenti dei segmenti
+            self.a_segmenti[:,:2][self.a_segmenti[:,:2] > i_nodo_da_togliere] -=1
+
+            
+            # Se il nodo padre del nodo da togliere non è padre di nessun altro nodo, lo tolgo
+            if ~np.any(self.a_segmenti[:,self.C_ORIG] == i_padre_nodo_da_togliere):
+                self.a_nodi = np.delete(self.a_nodi,i_padre_nodo_da_togliere,axis=0)
+                self.a_segmenti = np.delete(self.a_segmenti,i_padre_nodo_da_togliere-1,axis=0)
+                self.a_spessori = np.delete(self.a_spessori,i_padre_nodo_da_togliere-1,axis=0)
+                self.a_segmenti[:,:2][self.a_segmenti[:,:2] > i_padre_nodo_da_togliere] -=1
+            
 
 
 
@@ -468,15 +508,20 @@ class Albero:
         # array lunghezze dei vettori corrispondenti alle coordinate
         a_lung=np.linalg.norm(a_diff,axis=1)
 
+
+        # Calcolo dell'ombreggiatura nella direzione di allungamento
+        
+
         # array allungamenti
         # a_diff / a_lung --> vettori normalizzati
         # allungamento inversamente proporzionale all'ordine di ramo
         # allungamento proporzionale alla crescita_a (alterazione temporale)
         # allungamento proporzionale all'altezza dal suolo (1/100)
 
-        a_allu = a_diff / a_lung[:,None] / self.a_segmenti[:,C_ORDINE][:,None] * self.crescita_a
-        a_allu *= (1+ self.a_nodi[self.a_segmenti[:,C_DEST].astype(int),Z][:,None] /1000) 
-        #a_allu[:,2] -= .0001 
+        a_allu = a_diff / a_lung[:,None] * self.crescita_a
+        a_allu *=  4/(3+self.a_segmenti[:,C_ORDINE][:,None])
+        # a_allu *= (1+ self.a_nodi[self.a_segmenti[:,C_DEST],Z][:,None] /1000) 
+        # a_allu[:,2] -= .0001 
 
         return a_lung,a_allu 
 
@@ -527,7 +572,7 @@ class Albero:
         a_filtro_gemme = a_gemme == 1
 
         # Array "filtro" contenente gli indici dei nodi terminali di segmenti lunghi
-        a_filtro_lunghi = self.a_segmenti[self.a_lung > 10,C_DEST]
+        a_filtro_lunghi = self.a_segmenti[self.a_lung > 20,C_DEST]
 
         # a_filtro_lunghi --> array indici dei nodi teminali di segmenti lunghi
         # a_filtro_gemme  
@@ -540,6 +585,8 @@ class Albero:
 
         #return a_gemme, a_indici, a_filtro, a_rand
         return a_filtro, a_rand
+
+
 
     def piega_segmento(self,a_elenco_segmenti):
 
