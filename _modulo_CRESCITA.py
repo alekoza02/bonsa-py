@@ -1,6 +1,5 @@
 import numpy as np
 import random
-from _modulo_UI import WidgetData
 
 class Albero:
     def __init__(self) -> None:
@@ -68,10 +67,9 @@ class Albero:
         self.mess5 = ""
 
 
+    def crescita(self, render_mode: bool = False):
     # Funzione principale di crescita
     # data_widget è l'oggetto attraverso il quale posso modificare i campi di testo personalizzati
-    def crescita(self, data_widget: WidgetData):
-
     
         ''' TODO
         - diminuire spawn in zone affollate / aumentare morte rami affollati
@@ -87,7 +85,7 @@ class Albero:
 
         # BLOCCO CRESCITA A 30000 SEGMENTI
         if len(self.a_segmenti) > 30000: 
-            if data_widget.render_mode:
+            if render_mode:
                 aggiungi_spessori(self)
                 return self.a_nodi_v,self.a_segm_v
             else:
@@ -440,7 +438,7 @@ class Albero:
 
         # SPESSORE
 
-        if data_widget.render_mode:
+        if render_mode:
             aggiungi_spessori(self)
             return self.a_nodi_v,self.a_segm_v
         
