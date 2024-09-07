@@ -1,6 +1,5 @@
 import numpy as np
 import random
-from _modulo_UI import WidgetData
 
 class Albero:
     def __init__(self) -> None:
@@ -60,7 +59,7 @@ class Albero:
         self.mess5 = ""
 
 
-    def crescita(self, data_widget: WidgetData):
+    def crescita(self, render_mode: bool = False):
 
     
         ''' TODO
@@ -325,7 +324,7 @@ class Albero:
 
         # SPESSORE
 
-        if data_widget.render_mode:
+        if render_mode:
             nodi_visua1 = self.nodi.copy()
             nodi_visua2 = self.nodi.copy()
             nodi_visua3 = self.nodi.copy()

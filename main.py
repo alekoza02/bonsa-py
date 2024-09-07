@@ -2,139 +2,62 @@ import cProfile
 from pygame.locals import *
 import pygame
 import configparser
-import numpy as np
     
 def main(config: configparser):
     
-    _tasto_navigazione = int(config.get('Default', 'tasto_navigazione'))
-    _modello_or_cloud = config.get('Default', 'modello_or_cloud')
-    _modello_default = config.get('Default', 'modello_default')
     _debug_mesh_grid = eval(config.get('Default', 'debug_mesh_grid'))
     _debug_mesh_axis = eval(config.get('Default', 'debug_mesh_axis'))
 
     from _modulo_UI import UI, Logica
-    from _modulo_MATE import Camera, PointCloud, DebugMesh, Importer, Modello, Mate
+    from _modulo_RENDERER import Camera, PointCloud, DebugMesh, Renderer
     from _modulo_CRESCITA import Albero
     
-    ui = UI()
+    app = UI(config)
+
+    scena = app.scena["main"]
+
     logica = Logica()
     albero = Albero()
     camera = Camera()
+    renderer = Renderer(scena.schermo["viewport"])
 
-    # import modello di prova    
-    importer = Importer(True, False)
-    path_modello = _modello_default
-    path_texture = "TEXTURES/h_hdri_coord.jpg"
-    importer.modello(path_modello, path_texture, False)
-    
-    if _modello_or_cloud == "modello":
-        modello = Modello(importer.verteces, importer.links, Mate.normale_tri_buffer(importer.verteces, importer.links), importer.uv, importer.uv_links, importer.texture, s_x=5, s_y=5, s_z=5)
-    elif _modello_or_cloud == "points":
-        point_cloud = PointCloud(importer.verteces)
+    point_cloud = PointCloud(None)
     
     # assi e griglie
     debug_mesh = DebugMesh()
     
-    while ui.running:
+    while app.running:
 
         # impostazione inizio giro
-        ui.clock.tick(ui.max_fps)
-        ui.colora_bg()
-        ui.mouse_icon(logica)
+        app.start_cycle(logica) 
 
-        logica.dt += 1
-        logica.dragging_dx = 0
-        logica.dragging_dy = 0
-        logica.mouse_pos = pygame.mouse.get_pos()
-
-        # BLOCCO GESTIONE EVENTI -----------------------------------------------------------------------------
-        # raccolta eventi
+        # eventi
         eventi_in_corso = pygame.event.get()
+        app.event_manager(eventi_in_corso, logica)
 
-        # Stato di tutti i tasti
-        keys = pygame.key.get_pressed()
-
-        # scena main UI
-        for event in eventi_in_corso:
-            # MOUSE
-            if event.type == pygame.MOUSEBUTTONDOWN:
-
-                if event.button == 1:
-                    # gestisce eventi bottone e entrata schiacciata
-                    [elemento.selezionato_bot(event) for indice, elemento in ui.scena["main"].bottoni.items()]
-
-                if event.button == _tasto_navigazione:
-                    logica.dragging = True
-                    logica.dragging_end_pos = logica.mouse_pos
-                if event.button == 4:
-                    logica.scroll_up += 10
-                if event.button == 5:
-                    logica.scroll_down += 10
-
-            if event.type == pygame.MOUSEBUTTONUP:
-                if event.button == _tasto_navigazione: 
-                    logica.dragging = False
-                    logica.dragging_end_pos = logica.mouse_pos
-
-            if event.type == pygame.MOUSEMOTION:
-                if logica.dragging:
-                    logica.dragging_start_pos = logica.dragging_end_pos
-                    logica.dragging_end_pos = logica.mouse_pos
-                    logica.dragging_dx = logica.dragging_end_pos[0] - logica.dragging_start_pos[0]
-                    logica.dragging_dy = - logica.dragging_end_pos[1] + logica.dragging_start_pos[1] # sistema di riferimento invertito
-
-        # CONTROLLO TELECAMERA
-        logica.ctrl = keys[pygame.K_LCTRL]
-        logica.shift = keys[pygame.K_LSHIFT]
-                
-
-        # UI ----------------------------------------------------------------
-        
         # disegno i labels
-        [label.disegnami() for indice, label in ui.scena["main"].label_text.items()]
-        [bottone.disegnami() for indice, bottone in ui.scena["main"].bottoni.items()]
-        
-        ui.scena["main"].collect_data()
+        scena.disegnami_tabs_version(logica)
 
-        # disegno la viewport
-        ui.scena["main"].schermo["viewport"].disegnami()
-        
         # calcolo parametri camera
-        camera, logica = ui.scena["main"].schermo["viewport"].camera_setup(camera, logica)
+        camera, logica = renderer.camera_setup(camera, logica)
         
         # logica patre
-        ris_crescita = albero.crescita(ui.scena["main"].data_widgets)
+        ris_crescita = albero.crescita(scena.bottoni["ren_mode"].toggled)
         point_cloud.verteces_ori = ris_crescita[0] / 10
         point_cloud.links = ris_crescita[1].astype(int)
-
-        # set messaggi debug
-        logica.messaggio_debug1 = f"FPS : {ui.current_fps:.2f}"
-        logica.messaggio_debug2 = f"Numero di poligoni : {len(point_cloud.verteces_ori)}"
-        logica.messaggio_debug3 = f"Altezza approssimativa (cm): {int(np.max(point_cloud.verteces_ori))}"
-        logica.messaggio_debug4 = f"Cam pos : {camera.pos[0]:.1f}, {camera.pos[1]:.1f}, {camera.pos[2]:.1f}"
-        logica.messaggio_debug5 = f"hehehehe"
-        
-        logica.messaggio_debug4 = albero.mess4
-        logica.messaggio_debug5 = albero.mess5
-        
-        ui.aggiorna_messaggi_debug(logica)
         
         # disegno realtà aumentata
         debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
-        ui.scena["main"].schermo["viewport"].renderizza_debug_mesh(debug_mesh, camera)
+        renderer.renderizza_debug_mesh(debug_mesh, camera)
         
         # disegno punti
-        if _modello_or_cloud == "modello":
-            # ui.scena["main"].schermo["viewport"].renderizza_modello(modello, camera, logica, wireframe=True)
-            ui.scena["main"].schermo["viewport"].renderizza_modello_pixel_based(modello, camera, logica)
-        elif _modello_or_cloud == "points":
-            ui.scena["main"].schermo["viewport"].renderizza_point_cloud(point_cloud, camera, logica, linked=True, points_draw=False)
-        # UI ----------------------------------------------------------------
+        renderer.renderizza_point_cloud(point_cloud, camera, logica, linked=True, points_draw=True)
 
         # controllo di uscita dal programma ed eventuale aggiornamento dello schermo
-        ui.mouse_icon(logica)   # lanciato due volte per evitare flickering a bassi FPS
-        ui.aggiornamento_e_uscita_check()
+        app.mouse_icon(logica)   # lanciato due volte per evitare flickering a bassi FPS
+        app.aggiornamento_e_uscita_check()
         
+
 if __name__ == "__main__":
     
     config = configparser.ConfigParser()
