@@ -117,7 +117,7 @@ class Albero:
 
         # STEP 3 - CREAZIONE NUOVI SEGMENTI TERMINALI
         #  Creazione nuovi segmenti che sono la prosecuzione dei segmenti terminali
-        #  I requisiti per far iniziare un nuovo segmento sono: lunghezza segmento padre > 20 e numero gemme = 0 
+        #  I requisiti per far iniziare un nuovo segmento sono: lunghezza ramo padre > 20 e numero gemme = 0 
         a_filtro, a_rand = self.calcolo_prosecuzione_segmenti()
         
         # Se le condizioni di spawn nuovi segmenti esistono almeno per un nodo, creo il nuovo segmento
@@ -395,37 +395,14 @@ class Albero:
 
         # TODO
         # - MODIFICARE ALGORITMO PER NON CONSIDERARE OMBREGGIATI SE C'E' UNA PARTE NON OMBREGGIATA (LATERALI)
-        # - MISURARE PERFORMANCE CON DUE SISTEMI DIVERSI
-        # 1) RICERCA DEI SEGMENTI TERMINALI come segmenti che non hanno i nodi di destinazione tra tutti i nodi di origine
-        # 2) RICERCA DEI NODI TERMIALI come nodi che hanno il numero di gemme = 0  
 
-        # Cerco i segmenti terminali (quelli che NON hanno i nodi di destinazione tra tutti i nodi di origine )
-        a_segmenti_terminali = self.a_segmenti[~np.isin(self.a_segmenti[:,self.C_DEST],self.a_segmenti[:,self.C_ORIG])]
-
-        # Compongo array degli indici dei nodi terminali prendendo i nodi di destinazione dei segmenti terminali
-        ai_nodi_terminali = a_segmenti_terminali[:,self.C_DEST]
-
-        # CALCOLO ZONE AFFOLLATE
-        # Per ogni gemma calcolo quante gemme si trovano in un cono rovesciato al di sopra di essa
-                
-        l_ombre = []
-
-        # per ogni gemma calcolo l'ombreggiatura
-        for i in ai_nodi_terminali:
-            ombra = 0
-            for j in ai_nodi_terminali:
-                ro,theta,phi = Albero.cart_to_sphere(self.a_nodi[i],self.a_nodi[j])
-                # se esiste un nodo terminale ("foglia") in un angolo verticale compreso tra +- pi/4... 
-                if phi > np.pi/4 and phi < np.pi/4*3:
-                    # ... considero la gemma come "ombreggiata"
-                    ombra += 1
-            l_ombre.append(ombra)
-
+        # Generazione elenco delle ombre
+        l_ombre,ai_nodi_terminali = elenco_ombre(self)
     
         # cerco il nodo più ombreggiato
         massima_ombra = max(l_ombre)
-
         self.mess2 = f"Massima ombra: {massima_ombra}"
+        #print(l_ombre)
 
         if massima_ombra > 10:
             # individuo l'indice del nodo da togliere all'interno dell'array dei nodi terminali
@@ -433,12 +410,12 @@ class Albero:
             # sull'array degli indici dei nodi terminali) 
             i_nodo_da_togliere = ai_nodi_terminali[l_ombre.index(max(l_ombre))]
 
-            print("Nodo da togliere: ",i_nodo_da_togliere)
+            #print("Nodo da togliere: ",i_nodo_da_togliere)
 
             # ricorda: il nodo N è il nodo di destinazione del segmento N-1
             i_padre_nodo_da_togliere = self.a_segmenti[i_nodo_da_togliere-1,self.C_ORIG]
 
-            print("padre nodo da togliere: ",i_padre_nodo_da_togliere)
+            #print("padre nodo da togliere: ",i_padre_nodo_da_togliere)
 
 
             # Tolgo nodo, segmento e spessore
@@ -660,3 +637,30 @@ def aggiungi_spessori(self):
     self.a_nodi_v = np.vstack((nodi_visua1,nodi_visua2,nodi_visua3,nodi_visua4))
     self.a_segm_v = np.vstack((segm_visua1,segm_visua2,segm_visua3,segm_visua4))
 
+
+def elenco_ombre(self):
+    ''' 
+    Restituisce una lista di interi corrispondenti all'ombreggiatura di ogni nodo terminale
+    '''
+
+    # Cerco i segmenti terminali (quelli che NON hanno i nodi di destinazione tra tutti i nodi di origine )
+    a_segmenti_terminali = self.a_segmenti[~np.isin(self.a_segmenti[:,self.C_DEST],self.a_segmenti[:,self.C_ORIG])]
+
+    # Compongo array degli indici dei nodi terminali prendendo i nodi di destinazione dei segmenti terminali
+    ai_nodi_terminali = a_segmenti_terminali[:,self.C_DEST]
+
+    # Per ogni gemma calcolo quante gemme si trovano in un cono rovesciato al di sopra di essa
+        
+    l_ombre = []
+
+    # per ogni gemma calcolo l'ombreggiatura
+    for i in ai_nodi_terminali:
+        ombra = 0
+        for j in ai_nodi_terminali:
+            ro,theta,phi = Albero.cart_to_sphere(self.a_nodi[i],self.a_nodi[j])
+            # se esiste un nodo terminale ("foglia") in un angolo verticale compreso tra +- pi/4... 
+            if phi > np.pi/4 and phi < np.pi/4*3:
+                # ... considero la gemma come "ombreggiata"
+                ombra += 1
+        l_ombre.append(ombra)
+    return l_ombre,ai_nodi_terminali
