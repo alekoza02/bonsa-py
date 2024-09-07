@@ -52,6 +52,8 @@ class Logica:
         
         self.skip_salto = False
         self.dt = 0
+        self.fps = 100
+        self.trascorso = 0
         self.scena = 0
         
         self.ctrl = False
@@ -233,6 +235,8 @@ class UI:
     def start_cycle(self, logica: Logica):
         # impostazione inizio giro
         logica.dt = self.clock.tick(self.max_fps)
+        logica.trascorso += 1
+        logica.fps = self.current_fps
         self.colora_bg()
         self.mouse_icon(logica)
 
@@ -471,8 +475,8 @@ class Scena:
     
         self.bottoni["ren_mode"] = Button(self.parametri_repeat_elementi, self.fonts, "grande", text="Render Mode", w=12, h=4, x=82.25, y=80, bg = eval(self.config.get(self.tema, 'bottone_bg')), color_text = eval(self.config.get(self.tema, 'bottone_color_text')), colore_bg_schiacciato = eval(self.config.get(self.tema, 'bottone_colore_bg_schiacciato')), contorno_toggled = eval(self.config.get(self.tema, 'bottone_contorno_toggled')), contorno = eval(self.config.get(self.tema, 'bottone_contorno')), bg2 = eval(self.config.get(self.tema, 'bottone_bg2')))
         self.bottoni["ren_mode"].tooltip = "Abilita la visualizzazione\n3D del modello."
-        self.bottoni["foglie"] = Button(self.parametri_repeat_elementi, self.fonts, "grande", text="Foglie", w=12, h=4, x=69.25, y=80, bg = eval(self.config.get(self.tema, 'bottone_bg')), color_text = eval(self.config.get(self.tema, 'bottone_color_text')), colore_bg_schiacciato = eval(self.config.get(self.tema, 'bottone_colore_bg_schiacciato')), contorno_toggled = eval(self.config.get(self.tema, 'bottone_contorno_toggled')), contorno = eval(self.config.get(self.tema, 'bottone_contorno')), bg2 = eval(self.config.get(self.tema, 'bottone_bg2')))
-        self.bottoni["foglie"].tooltip = "Abilita la visualizzazione\ndelle foglie."
+        self.bottoni["foglie"] = Button(self.parametri_repeat_elementi, self.fonts, "grande", text="Simula", w=12, h=4, x=69.25, y=80, toggled=True, bg = eval(self.config.get(self.tema, 'bottone_bg')), color_text = eval(self.config.get(self.tema, 'bottone_color_text')), colore_bg_schiacciato = eval(self.config.get(self.tema, 'bottone_colore_bg_schiacciato')), contorno_toggled = eval(self.config.get(self.tema, 'bottone_contorno_toggled')), contorno = eval(self.config.get(self.tema, 'bottone_contorno')), bg2 = eval(self.config.get(self.tema, 'bottone_bg2')))
+        self.bottoni["foglie"].tooltip = "Mette in pausa / riprende\nla simulazione."
 
         # TABS LINK
         self.tabs["sys_info"] = TabUI(name="sys_info", 

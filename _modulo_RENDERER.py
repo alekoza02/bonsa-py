@@ -2,6 +2,7 @@ import numpy as np
 from _modulo_MATE import Mate, AcceleratedFoo
 from _modulo_UI import Logica, Schermo
 import pygame
+import ctypes
 
 class Camera:
     def __init__(self) -> None:
@@ -214,6 +215,48 @@ class Renderer:
         self.ancoraggio_y = schermo.ancoraggio_y
 
 
+        self.init_C_array = True
+
+        self.lib = ctypes.CDLL(".\\LIBS\\bin\\viewport_renderer.dll")
+
+        self.lib.main_loop.restype = None
+        self.lib.main_loop.argtypes = [
+            ctypes.POINTER(ctypes.c_int),       # puntatore all'array
+            ctypes.POINTER(ctypes.c_float),     # puntatore alle posizioni
+            ctypes.POINTER(ctypes.c_int),       # puntatore ai link
+            ctypes.c_int,                       # numero di punti
+            ctypes.c_int,                       # numero di coppie di link
+            ctypes.c_int,                       # larghezza
+            ctypes.c_int,                       # altezza
+            ctypes.c_int,                       # FLAGS: points
+            ctypes.c_int,                       # FLAGS: lines
+            ctypes.c_int,                       # FLAGS: polygons
+        ]
+
+        self.lib.debugger.restype = None
+        self.lib.debugger.argtypes = [
+            ctypes.POINTER(ctypes.c_int),       # puntatore all'array
+            ctypes.c_int,                       # larghezza
+            ctypes.c_int,                       # altezza
+            ctypes.c_int,                       # dt
+        ]
+
+        
+        self.lib.free_array.restype = None
+        self.lib.free_array.argtypes = [ctypes.POINTER(ctypes.c_int)]
+        
+
+        self.lib.reset_canvas.restype = None
+        self.lib.reset_canvas.argtypes = [ctypes.POINTER(ctypes.c_int)]
+        
+        
+        self.lib.create_array.restype = ctypes.POINTER(ctypes.c_int)
+        self.lib.create_array.argtypes = [
+            ctypes.c_int,       # larghezza
+            ctypes.c_int,       # altezza
+        ]
+
+
     def camera_setup(self, camera: Camera, logica: Logica) -> tuple[Camera, Logica]:
         '''
         Vengono eseguite 2 sub funzioni in cui:
@@ -239,7 +282,7 @@ class Renderer:
         points.verteces_ori = Mate.add_homogenous(points.verteces_ori)
         
         # applico le varie trasformazioni (SOLO locali all'oggetto) come l'autorotazione
-        points.applica_rotazioni(autorotation=logica.dt)
+        points.applica_rotazioni(autorotation=logica.trascorso)
         points.applica_traslazioni()
 
         # rimuovo la coordinata oer non fare casini più avanti
@@ -247,19 +290,24 @@ class Renderer:
         
         # uso la camera per proiettare tutto nel suo spazio e poter avere i vertici finali
         render_vertex = self.apply_transforms(points.verteces, camera)
+
+        if logica.fps > 30 or logica.trascorso < 100:
+            for struct in render_vertex[points.links]:
+                if not AcceleratedFoo.any_fast(struct, self.w * 1.5, self.h * 1.5):
+                    if points_draw:
+                        for point in struct:
+                            pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 1)
+                    if linked:
+                        pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
+                
+            self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
+
+        else:
+            self.LIBC_renderizza_usando_C(logica, render_vertex, points.links, True, True, False)
+            self.LIBC_incolla_canvas_c()
         
-        for struct in render_vertex[points.links]:
-            if not AcceleratedFoo.any_fast(struct, self.w/2, self.h/2):
-                if points_draw:
-                    for point in struct:
-                        pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 1)
-                if linked:
-                    pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
-            
-        self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
 
-
-    def renderizza_debug_mesh(self, debug: DebugMesh, camera: Camera) -> None:    
+    def renderizza_debug_mesh(self, debug: DebugMesh, camera: Camera, logica: Logica) -> None:    
         '''
         Viene renderizzato (in base a scelte precedenti) se renderizzare:
         - semplice sistema di riferimento XYZ
@@ -267,6 +315,7 @@ class Renderer:
         '''
         
         self.schermo.fill([30, 30, 30])
+        self.LIBC_inizializza_e_reset_canvas()
 
         # aggiunta della 4 coordinata (omogenea) per poter applicare le varie matrici e direttamente trasformazione camera world
         render_vertex_axis = Mate.add_homogenous(debug.axis)
@@ -276,22 +325,58 @@ class Renderer:
         render_vertex_grid = Mate.add_homogenous(debug.grid)
         render_vertex_grid = self.apply_transforms(render_vertex_grid, camera)
         
-        if debug.debug_axis:
-            colore = [0, 0, 0]
-            for indice, linea in enumerate(render_vertex_axis[debug.link_axis]):
-                if not AcceleratedFoo.any_fast(linea, self.w/2, self.h/2):
-                    colore[indice] = 255
-                    pygame.draw.line(self.schermo, colore, linea[0, :2], linea[1, :2], 8)
-                    colore[indice] = 0
+        if logica.fps > 30 or logica.trascorso < 100:
                 
-        if debug.debug_grid:
-            for linea in render_vertex_grid[debug.link_grid]:
-                if not AcceleratedFoo.any_fast(linea, self.w/2, self.h/2):
-                    pygame.draw.line(self.schermo, [100, 100, 100], linea[0, :2], linea[1, :2], 1)
-                
+            if debug.debug_axis:
+                colore = [0, 0, 0]
+                for indice, linea in enumerate(render_vertex_axis[debug.link_axis]):
+                    if not AcceleratedFoo.any_fast(linea, self.w * 1.5, self.h * 1.5):
+                        colore[indice] = 255
+                        pygame.draw.line(self.schermo, colore, linea[0, :2], linea[1, :2], 8)
+                        colore[indice] = 0
+                    
+            if debug.debug_grid:
+                    for linea in render_vertex_grid[debug.link_grid]:
+                        if not AcceleratedFoo.any_fast(linea, self.w * 1.5, self.h * 1.5):
+                            pygame.draw.line(self.schermo, [100, 100, 100], linea[0, :2], linea[1, :2], 1)
+                        
+            self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
+        
+        else:
+            
+            if debug.debug_axis:
+                self.LIBC_renderizza_usando_C(logica, render_vertex_axis, debug.link_axis, False, True, False)
+            if debug.debug_grid:
+                self.LIBC_renderizza_usando_C(logica, render_vertex_grid, debug.link_grid, False, True, False)
+
+        
+    def LIBC_inizializza_e_reset_canvas(self):
+        if self.init_C_array:
+            self.init_C_array = False
+            self.c_array = self.lib.create_array(self.w, self.h)
+        
+        self.lib.reset_canvas(self.c_array, self.w, self.h)
+
+    
+    def LIBC_renderizza_usando_C(self, logica: Logica, points: list[int], links: list[int], FLAG_points: bool, FLAG_lines: bool, FLAG_poly: bool):
+        
+        points = np.ravel(points[:, :2]).astype(np.float32)
+        points_ptr = points.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+        
+        links = np.ravel(links[:, :2]).astype(int)
+        links_ptr = links.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+
+        self.lib.main_loop(self.c_array, points_ptr, links_ptr, int(len(points) / 2), int(len(links) / 2), self.w, self.h, FLAG_points, FLAG_lines, FLAG_poly)
+        self.numpy_array = np.array(np.ctypeslib.as_array(self.c_array, shape=(self.w, self.h, 3)), copy = True, dtype=np.int8)
+        # self.numpy_array = np.transpose(self.numpy_array, (1, 0, 2))
+
+
+    def LIBC_incolla_canvas_c(self):
+        self.surface = pygame.surfarray.make_surface(self.numpy_array)
+        self.schermo.blit(pygame.transform.scale(self.surface, (self.w, self.h)), (0,0))
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
-        
-        
+
+
     def apply_transforms(self, vertici: np.ndarray[float], camera: Camera) -> np.ndarray[float]:
         '''
         Applicazione in serie delle varie trasformazioni:
