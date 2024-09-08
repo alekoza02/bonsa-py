@@ -45,6 +45,13 @@ def main(config: configparser):
         ris_crescita = albero.crescita(scena.bottoni["ren_mode"].toggled)
         point_cloud.verteces_ori = ris_crescita[0] / 10
         point_cloud.links = ris_crescita[1].astype(int)
+
+        # messaggi di debug
+        scena.label_text["debug1"].text = albero.mess1
+        scena.label_text["debug2"].text = albero.mess2
+        scena.label_text["debug3"].text = albero.mess3
+        scena.label_text["debug4"].text = albero.mess4
+        scena.label_text["debug5"].text = albero.mess5
         
         # disegno realtà aumentata
         debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)

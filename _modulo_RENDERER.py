@@ -239,7 +239,7 @@ class Renderer:
         points.verteces_ori = Mate.add_homogenous(points.verteces_ori)
         
         # applico le varie trasformazioni (SOLO locali all'oggetto) come l'autorotazione
-        points.applica_rotazioni(autorotation=logica.dt)
+        points.applica_rotazioni(autorotation=logica.contatore)
         points.applica_traslazioni()
 
         # rimuovo la coordinata oer non fare casini più avanti

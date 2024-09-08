@@ -52,6 +52,7 @@ class Logica:
         
         self.skip_salto = False
         self.dt = 0
+        self.contatore = 0
         self.scena = 0
         
         self.ctrl = False
@@ -233,6 +234,7 @@ class UI:
     def start_cycle(self, logica: Logica):
         # impostazione inizio giro
         logica.dt = self.clock.tick(self.max_fps)
+        logica.contatore += 1
         self.colora_bg()
         self.mouse_icon(logica)
 

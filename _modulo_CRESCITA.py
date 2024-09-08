@@ -80,6 +80,17 @@ class Albero:
         '''
         
         self.iterazioni += 1
+        
+        # La lunghezza dei segmenti vale al massimo 10 (valore arbitrario)
+        # e corrisponde ad una lunghezza di 1 cm (self.dim_segm)
+        # Calcolo l'altezza dell'albero cercando la coordinata Z del nodo più alto
+        # la divido per 10 (il valore arbitrario) 
+        # e la moltiplico per dim_segm (la dimensione reale in cm)
+        # Per estetica, prendo solo la parte intera e divido per 100 per avere
+        # l'altezza in metri con precisione fino al centimetro 
+ 
+        self.dim_segm = 1
+        self.mess1 = f"Altezza (m): {int(np.max(self.a_nodi[:,self.C_Z])*self.dim_segm/10)/100}"
         self.mess4 = f"iterazioni: {self.iterazioni}"
         self.mess5 = f"segmenti: {len(self.a_segmenti)}"
 
