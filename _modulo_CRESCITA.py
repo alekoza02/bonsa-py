@@ -72,35 +72,36 @@ class Albero:
     # data_widget è l'oggetto attraverso il quale posso modificare i campi di testo personalizzati
     
         ''' TODO
-        - diminuire spawn in zone affollate / aumentare morte rami affollati
-        - generare foglie (estetico)
+        
         - modificare la crescita e la direzione di spawn in base alla posizione (rami in ombra)
-
+        - diminuire/bloccare spawn in zone affollate / aumentare morte rami affollati
+        - generare foglie (estetico)
         - ALBERO --> BONSAI  (potatura)
         '''
         
         self.iterazioni += 1
         
-        # La lunghezza dei segmenti vale al massimo 10 (valore arbitrario)
-        # e corrisponde ad una lunghezza di 1 cm (self.dim_segm)
+        # La lunghezza dei segmenti vale al massimo 20 (valore arbitrario)
+        # e corrisponde ad una lunghezza di 2 cm (self.dim_segm)
         # Calcolo l'altezza dell'albero cercando la coordinata Z del nodo più alto
-        # la divido per 10 (il valore arbitrario) 
+        # la divido per 20 (il valore arbitrario) 
         # e la moltiplico per dim_segm (la dimensione reale in cm)
         # Per estetica, prendo solo la parte intera e divido per 100 per avere
         # l'altezza in metri con precisione fino al centimetro 
  
-        self.dim_segm = 1
-        self.mess1 = f"Altezza (m): {int(np.max(self.a_nodi[:,self.C_Z])*self.dim_segm/10)/100}"
+        self.dim_segm_virt = 20
+        self.dim_segm_reale = 2
+        self.mess1 = f"Altezza (m): {int(np.max(self.a_nodi[:,self.C_Z])*self.dim_segm_reale/self.dim_segm_virt)/100}"
         self.mess4 = f"iterazioni: {self.iterazioni}"
         self.mess5 = f"segmenti: {len(self.a_segmenti)}"
 
         # BLOCCO CRESCITA A 30000 SEGMENTI
         if len(self.a_segmenti) > 30000: 
-            if render_mode:
-                aggiungi_spessori(self)
-                return self.a_nodi_v,self.a_segm_v
-            else:
-                return self.a_nodi,self.a_segmenti
+            # if render_mode:
+            #     aggiungi_spessori(self)
+            #     return self.a_nodi_v,self.a_segm_v
+            # else:
+            return self.a_nodi,self.a_segmenti
 
         # STEP 1 - CRESCITA GENERALE DI TUTTI I SEGMENTI
 
@@ -419,12 +420,10 @@ class Albero:
             # sull'array degli indici dei nodi terminali) 
             i_nodo_da_togliere = ai_nodi_terminali[l_ombre.index(max(l_ombre))]
 
-            #print("Nodo da togliere: ",i_nodo_da_togliere)
-
             # ricorda: il nodo N è il nodo di destinazione del segmento N-1
             i_padre_nodo_da_togliere = self.a_segmenti[i_nodo_da_togliere-1,self.C_ORIG]
 
-            #print("padre nodo da togliere: ",i_padre_nodo_da_togliere)
+            #print("Nodo da togliere: ",i_nodo_da_togliere,"padre nodo da togliere: ",i_padre_nodo_da_togliere)
 
 
             # Tolgo nodo, segmento e spessore
@@ -437,6 +436,7 @@ class Albero:
             
             # Se il nodo padre del nodo da togliere non è padre di nessun altro nodo, lo tolgo
             if ~np.any(self.a_segmenti[:,self.C_ORIG] == i_padre_nodo_da_togliere):
+                print("Tolgo padre")
                 self.a_nodi = np.delete(self.a_nodi,i_padre_nodo_da_togliere,axis=0)
                 self.a_segmenti = np.delete(self.a_segmenti,i_padre_nodo_da_togliere-1,axis=0)
                 self.a_spessori = np.delete(self.a_spessori,i_padre_nodo_da_togliere-1,axis=0)
@@ -446,15 +446,14 @@ class Albero:
 
 
         # PROVA DI AGGIUNTA POLIGONI
-
         # SPESSORE
-
-        if render_mode:
-            aggiungi_spessori(self)
-            return self.a_nodi_v,self.a_segm_v
+        # if render_mode:
+        #     aggiungi_spessori(self)
+        #     return self.a_nodi_v,self.a_segm_v
         
-        else:
-            return self.a_nodi,self.a_segmenti
+        # else:
+        
+        return self.a_nodi,self.a_segmenti
 
 
     def cart_to_sphere(coord1: np.ndarray,coord2: np.ndarray) -> np.ndarray:
