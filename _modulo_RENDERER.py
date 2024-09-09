@@ -222,10 +222,12 @@ class Renderer:
         self.lib.main_loop.restype = None
         self.lib.main_loop.argtypes = [
             ctypes.POINTER(ctypes.c_int),       # puntatore all'array
-            ctypes.POINTER(ctypes.c_float),     # puntatore alle posizioni
+            ctypes.POINTER(ctypes.c_int),       # puntatore alle posizioni
             ctypes.POINTER(ctypes.c_int),       # puntatore ai link
+            ctypes.POINTER(ctypes.c_int),       # puntatore ai triangoli
             ctypes.c_int,                       # numero di punti
             ctypes.c_int,                       # numero di coppie di link
+            ctypes.c_int,                       # numero di triangoli
             ctypes.c_int,                       # larghezza
             ctypes.c_int,                       # altezza
             ctypes.c_int,                       # FLAGS: points
@@ -325,6 +327,11 @@ class Renderer:
         render_vertex_grid = Mate.add_homogenous(debug.grid)
         render_vertex_grid = self.apply_transforms(render_vertex_grid, camera)
         
+        
+        # self.LIBC_triangolo()
+        # self.LIBC_incolla_canvas_c()
+
+        
         if logica.fps > 30 or logica.trascorso < 100:
                 
             if debug.debug_axis:
@@ -348,7 +355,7 @@ class Renderer:
                 self.LIBC_renderizza_usando_C(logica, render_vertex_axis, debug.link_axis, False, True, False)
             if debug.debug_grid:
                 self.LIBC_renderizza_usando_C(logica, render_vertex_grid, debug.link_grid, False, True, False)
-
+        
         
     def LIBC_inizializza_e_reset_canvas(self):
         if self.init_C_array:
@@ -360,15 +367,33 @@ class Renderer:
     
     def LIBC_renderizza_usando_C(self, logica: Logica, points: list[int], links: list[int], FLAG_points: bool, FLAG_lines: bool, FLAG_poly: bool):
         
-        points = np.ravel(points[:, :2]).astype(np.float32)
-        points_ptr = points.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+        points = np.ravel(points[:, :2]).astype(int)
+        points_ptr = points.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
         
         links = np.ravel(links[:, :2]).astype(int)
         links_ptr = links.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
 
-        self.lib.main_loop(self.c_array, points_ptr, links_ptr, int(len(points) / 2), int(len(links) / 2), self.w, self.h, FLAG_points, FLAG_lines, FLAG_poly)
+        triangoli = np.ravel([0, 1, 2]).astype(int)
+        triangoli_ptr = triangoli.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+
+        self.lib.main_loop(self.c_array, points_ptr, links_ptr, triangoli_ptr, int(len(points) / 2), int(len(links) / 2), int(len(triangoli / 3)), self.w, self.h, FLAG_points, FLAG_lines, FLAG_poly)
         self.numpy_array = np.array(np.ctypeslib.as_array(self.c_array, shape=(self.w, self.h, 3)), copy = True, dtype=np.int8)
         # self.numpy_array = np.transpose(self.numpy_array, (1, 0, 2))
+
+
+    def LIBC_triangolo(self):
+
+        points = np.ravel([10, 10, 1500, 1500, 10, 1000, 1000, 10]).astype(int)
+        points_ptr = points.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+        
+        links = np.ravel([0, 1, 1, 2, 2, 0, 1, 3, 3, 0]).astype(int)
+        links_ptr = links.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+
+        triangoli = np.ravel([0, 1, 2, 0, 3, 1]).astype(int)
+        triangoli_ptr = triangoli.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+
+        self.lib.main_loop(self.c_array, points_ptr, links_ptr, triangoli_ptr, int(len(points) / 2), int(len(links) / 2), int(len(triangoli) / 3), self.w, self.h, True, True, True)
+        self.numpy_array = np.array(np.ctypeslib.as_array(self.c_array, shape=(self.w, self.h, 3)), copy = True, dtype=np.int8)
 
 
     def LIBC_incolla_canvas_c(self):
