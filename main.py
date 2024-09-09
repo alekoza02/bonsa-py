@@ -1,4 +1,6 @@
 import cProfile
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 from pygame.locals import *
 import pygame
 import configparser
@@ -42,7 +44,9 @@ def main(config: configparser):
         camera, logica = renderer.camera_setup(camera, logica)
         
         # logica patre
-        ris_crescita = albero.crescita(scena.bottoni["ren_mode"].toggled)
+        if scena.bottoni["foglie"].toggled:
+            ris_crescita = albero.crescita(scena.bottoni["ren_mode"].toggled)
+    
         point_cloud.verteces_ori = ris_crescita[0] / 10
         point_cloud.links = ris_crescita[1].astype(int)
 
@@ -55,7 +59,7 @@ def main(config: configparser):
         
         # disegno realtà aumentata
         debug_mesh.scelta_debug(_debug_mesh_grid, _debug_mesh_axis)
-        renderer.renderizza_debug_mesh(debug_mesh, camera)
+        renderer.renderizza_debug_mesh(debug_mesh, camera, logica)
         
         # disegno punti
         renderer.renderizza_point_cloud(point_cloud, camera, logica, linked=True, points_draw=True)
@@ -64,6 +68,7 @@ def main(config: configparser):
         app.mouse_icon(logica)   # lanciato due volte per evitare flickering a bassi FPS
         app.aggiornamento_e_uscita_check()
         
+    renderer.lib.free_array(renderer.c_array)
 
 if __name__ == "__main__":
     

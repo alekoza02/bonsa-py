@@ -46,10 +46,10 @@ class Mate:
     def centratura(dim: tuple[int]) -> np.ndarray[np.ndarray[float]]:
         return np.array(
             [
-                [dim[0]//2,  0,      0,  0],
-                [0,     dim[1]//2,   0,  0],
+                [dim[0]/2,  0,      0,  0],
+                [0,     dim[1]/2,   0,  0],
                 [0,     0,      1,  0],
-                [dim[0]//2,  dim[1]//2,   0,  1]
+                [dim[0]/2,  dim[1]/2,   0,  1]
             ]
         )
 
@@ -142,8 +142,13 @@ class Mate:
     
     @staticmethod
     def proiezione(vertici: np.ndarray[np.ndarray[float]]) -> np.ndarray[np.ndarray[float]]:
+        distanze = vertici[:, -1]
+        indici_dist_neg = np.where(distanze < 0)
+
         ris = vertici / vertici[:, -1].reshape(-1, 1)
-        ris[(ris < -2) | (ris > 2)] = 0
+        ris[(ris < -12) | (ris > 12)] = 2
+        ris[indici_dist_neg] = np.array([2, 2, 2, 1])
+
         return ris
     
     
