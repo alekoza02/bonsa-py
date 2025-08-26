@@ -296,13 +296,14 @@ class Renderer:
         render_vertex = self.apply_transforms(points.verteces, camera)
 
         # if logica.fps > 30 or logica.contatore < 100:
-        #     for struct in render_vertex[points.links]:
-        #         if not AcceleratedFoo.any_fast(struct, self.w * 1.5, self.h * 1.5):
-        #             if points_draw:
-        #                 for point in struct:
-        #                     pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 1)
-        #             if linked:
-        #                 pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
+        if 1:
+            for struct in render_vertex[points.links]:
+                if not AcceleratedFoo.any_fast(struct, self.w * 1.5, self.h * 1.5):
+                    if points_draw:
+                        for point in struct:
+                            pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 1)
+                    if linked:
+                        pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
                 
         #     self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
 
