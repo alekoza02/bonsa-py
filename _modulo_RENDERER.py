@@ -293,7 +293,8 @@ class Renderer:
         # uso la camera per proiettare tutto nel suo spazio e poter avere i vertici finali
         render_vertex = self.apply_transforms(points.verteces, camera)
 
-        if logica.fps > 30 or logica.trascorso < 100:
+        # if logica.fps > 30 or logica.contatore < 100:
+        if 1:
             for struct in render_vertex[points.links]:
                 if not AcceleratedFoo.any_fast(struct, self.w * 1.5, self.h * 1.5):
                     if points_draw:
@@ -332,7 +333,7 @@ class Renderer:
         # self.LIBC_incolla_canvas_c()
 
         
-        if logica.fps > 30 or logica.trascorso < 100:
+        if logica.fps > 30 or logica.contatore < 100:
                 
             if debug.debug_axis:
                 colore = [0, 0, 0]
