@@ -3,6 +3,7 @@ from _modulo_MATE import Mate, AcceleratedFoo
 from _modulo_UI import Logica, Schermo
 import pygame
 import ctypes
+import time 
 
 class Camera:
     def __init__(self) -> None:
@@ -213,6 +214,7 @@ class Renderer:
         self.madre = schermo.madre
         self.ancoraggio_x = schermo.ancoraggio_x
         self.ancoraggio_y = schermo.ancoraggio_y
+        self.debug_counter = {}
 
 
         self.init_C_array = True
@@ -293,20 +295,20 @@ class Renderer:
         # uso la camera per proiettare tutto nel suo spazio e poter avere i vertici finali
         render_vertex = self.apply_transforms(points.verteces, camera)
 
-        if logica.fps > 30 or logica.trascorso < 100:
-            for struct in render_vertex[points.links]:
-                if not AcceleratedFoo.any_fast(struct, self.w * 1.5, self.h * 1.5):
-                    if points_draw:
-                        for point in struct:
-                            pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 1)
-                    if linked:
-                        pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
+        # if logica.fps > 30 or logica.contatore < 100:
+        #     for struct in render_vertex[points.links]:
+        #         if not AcceleratedFoo.any_fast(struct, self.w * 1.5, self.h * 1.5):
+        #             if points_draw:
+        #                 for point in struct:
+        #                     pygame.draw.circle(self.schermo, [100, 255, 100], point[:2], 1)
+        #             if linked:
+        #                 pygame.draw.line(self.schermo, [100, 100, 100], struct[0, :2], struct[1, :2], 1)
                 
-            self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
+        #     self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
 
-        else:
-            self.LIBC_renderizza_usando_C(logica, render_vertex, points.links, True, True, False)
-            self.LIBC_incolla_canvas_c()
+        # else:
+        self.LIBC_renderizza_usando_C(logica, render_vertex, points.links, True, True, False)
+        self.LIBC_incolla_canvas_c()
         
 
     def renderizza_debug_mesh(self, debug: DebugMesh, camera: Camera, logica: Logica) -> None:    
@@ -332,7 +334,7 @@ class Renderer:
         # self.LIBC_incolla_canvas_c()
 
         
-        if logica.fps > 30 or logica.trascorso < 100:
+        if logica.fps > 30 or logica.contatore < 100:
                 
             if debug.debug_axis:
                 colore = [0, 0, 0]
@@ -376,8 +378,27 @@ class Renderer:
         triangoli = np.ravel([0, 1, 2]).astype(int)
         triangoli_ptr = triangoli.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
 
-        self.lib.main_loop(self.c_array, points_ptr, links_ptr, triangoli_ptr, int(len(points) / 2), int(len(links) / 2), int(len(triangoli / 3)), self.w, self.h, FLAG_points, FLAG_lines, FLAG_poly)
-        self.numpy_array = np.array(np.ctypeslib.as_array(self.c_array, shape=(self.w, self.h, 3)), copy = True, dtype=np.int8)
+        # self.lib.main_loop(self.c_array, points_ptr, links_ptr, triangoli_ptr, int(len(points) / 2), int(len(links) / 2), int(len(triangoli / 3)), self.w, self.h, FLAG_points, FLAG_lines, FLAG_poly)
+        self.lib.debugger(self.c_array, self.w, self.h, logica.contatore)
+
+        start = time.perf_counter_ns()
+        # self.numpy_array = np.array(np.ctypeslib.as_array(self.c_array, shape=(self.w, self.h, 3)), copy = True, dtype=np.int8)
+        
+        
+        # Assume self.c_array is a ctypes pointer to (c_int * (w * h * 3))
+        total_ints = self.w * self.h * 3
+        total_bytes = total_ints * 1  # each int32 is 4 bytes
+
+        # Cast int32_t buffer to uint8_t buffer
+        buf_ptr = ctypes.cast(self.c_array, ctypes.POINTER(ctypes.c_uint8 * total_bytes))
+        self.numpy_array = buf_ptr.contents
+        
+        # buf_ptr = ctypes.cast(self.c_array, ctypes.POINTER(ctypes.c_uint8 * (self.w * self.h * 3)))
+        # self.numpy_array = buf_ptr.contents
+        
+        
+        end = time.perf_counter_ns()
+        self.debug_counter = {'to_numpy': end - start}
         # self.numpy_array = np.transpose(self.numpy_array, (1, 0, 2))
 
 
@@ -397,7 +418,14 @@ class Renderer:
 
 
     def LIBC_incolla_canvas_c(self):
-        self.surface = pygame.surfarray.make_surface(self.numpy_array)
+        start = time.perf_counter_ns()
+        # self.surface = pygame.surfarray.make_surface(self.numpy_array)
+        self.surface = pygame.image.frombuffer(self.numpy_array, (self.w, self.h), "RGB")
+        end = time.perf_counter_ns()
+        self.debug_counter["make_surface"] = end - start
+
+        print(f"Conversione numpy: {self.debug_counter["to_numpy"] / 1000000}ms\nCreazione superficie: {self.debug_counter["make_surface"] / 1000000}ms\nTempo totale: {self.debug_counter["to_numpy"] / 1000000 + self.debug_counter["make_surface"] / 1000000}ms")
+
         self.schermo.blit(pygame.transform.scale(self.surface, (self.w, self.h)), (0,0))
         self.madre.blit(self.schermo, (self.ancoraggio_x, self.ancoraggio_y))
 
