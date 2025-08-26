@@ -258,6 +258,8 @@ class UI:
         logica.right = keys[pygame.K_RIGHT]
         logica.tab = keys[pygame.K_TAB]
 
+        logica.use_C_lib = not (logica.fps > 30 or logica.contatore < 100)
+        logica.use_C_lib = True
 
         # reset variabili
         logica.click_sinistro = False
@@ -475,8 +477,8 @@ class Scena:
     
         self.bottoni["ren_mode"] = Button(self.parametri_repeat_elementi, self.fonts, "grande", text="Render Mode", w=12, h=4, x=82.25, y=80, bg = eval(self.config.get(self.tema, 'bottone_bg')), color_text = eval(self.config.get(self.tema, 'bottone_color_text')), colore_bg_schiacciato = eval(self.config.get(self.tema, 'bottone_colore_bg_schiacciato')), contorno_toggled = eval(self.config.get(self.tema, 'bottone_contorno_toggled')), contorno = eval(self.config.get(self.tema, 'bottone_contorno')), bg2 = eval(self.config.get(self.tema, 'bottone_bg2')))
         self.bottoni["ren_mode"].tooltip = "Abilita la visualizzazione\n3D del modello."
-        self.bottoni["foglie"] = Button(self.parametri_repeat_elementi, self.fonts, "grande", text="Simula", w=12, h=4, x=69.25, y=80, toggled=True, bg = eval(self.config.get(self.tema, 'bottone_bg')), color_text = eval(self.config.get(self.tema, 'bottone_color_text')), colore_bg_schiacciato = eval(self.config.get(self.tema, 'bottone_colore_bg_schiacciato')), contorno_toggled = eval(self.config.get(self.tema, 'bottone_contorno_toggled')), contorno = eval(self.config.get(self.tema, 'bottone_contorno')), bg2 = eval(self.config.get(self.tema, 'bottone_bg2')))
-        self.bottoni["foglie"].tooltip = "Mette in pausa / riprende\nla simulazione."
+        self.bottoni["simula"] = Button(self.parametri_repeat_elementi, self.fonts, "grande", text="Simula", w=12, h=4, x=69.25, y=80, toggled=True, bg = eval(self.config.get(self.tema, 'bottone_bg')), color_text = eval(self.config.get(self.tema, 'bottone_color_text')), colore_bg_schiacciato = eval(self.config.get(self.tema, 'bottone_colore_bg_schiacciato')), contorno_toggled = eval(self.config.get(self.tema, 'bottone_contorno_toggled')), contorno = eval(self.config.get(self.tema, 'bottone_contorno')), bg2 = eval(self.config.get(self.tema, 'bottone_bg2')))
+        self.bottoni["simula"].tooltip = "Mette in pausa / riprende\nla simulazione."
 
         # TABS LINK
         self.tabs["sys_info"] = TabUI(name="sys_info", 
@@ -485,7 +487,7 @@ class Scena:
 
         self.tabs["scene_info"] = TabUI(name="scene_info",
             labels=[self.label_text["title"], self.label_text["debug1"], self.label_text["debug2"], self.label_text["debug3"], self.label_text["debug4"], self.label_text["debug5"]],
-            bottoni=[self.bottoni["ren_mode"], self.bottoni["foglie"]],
+            bottoni=[self.bottoni["ren_mode"], self.bottoni["simula"]],
         )
 
 

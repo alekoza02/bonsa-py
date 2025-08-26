@@ -71,7 +71,7 @@ class Albero:
         self.mess5 = ""
 
 
-    def crescita(self, render_mode: bool = False):
+    def crescita(self):
     # Funzione principale di crescita
     # data_widget è l'oggetto attraverso il quale posso modificare i campi di testo personalizzati
     
@@ -494,17 +494,8 @@ class Albero:
                 self.a_segmenti[:,:2][self.a_segmenti[:,:2] > i_padre_nodo_da_togliere] -=1
             
 
-
-
-        # PROVA DI AGGIUNTA POLIGONI
-        # SPESSORE
-        if render_mode:
-            aggiungi_spessori(self)
-            return self.a_nodi_v,self.a_segm_v
-        
-        else:
-        
-            return self.a_nodi,self.a_segmenti
+        self.a_colori = (self.a_spessori - np.min(self.a_spessori)) / (np.max(self.a_spessori) - np.min(self.a_spessori))
+        return self.a_nodi,self.a_segmenti,self.a_spessori,self.a_colori
 
 
     def cart_to_sphere(coord1: np.ndarray,coord2: np.ndarray) -> np.ndarray:

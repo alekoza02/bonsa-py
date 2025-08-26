@@ -13,7 +13,8 @@ def main(config: configparser):
     from _modulo_UI import UI, Logica
     from _modulo_RENDERER import Camera, PointCloud, DebugMesh, Renderer
     from _modulo_CRESCITA import Albero
-    
+    from _modulo_COMUNICAZIONE import Converter
+
     app = UI(config)
 
     scena = app.scena["main"]
@@ -21,6 +22,7 @@ def main(config: configparser):
     logica = Logica()
     albero = Albero()
     camera = Camera()
+    convertitore = Converter()
     renderer = Renderer(scena.schermo["viewport"])
 
     point_cloud = PointCloud(None)
@@ -44,11 +46,17 @@ def main(config: configparser):
         camera, logica = renderer.camera_setup(camera, logica)
         
         # logica patre
-        if scena.bottoni["foglie"].toggled:
-            ris_crescita = albero.crescita(scena.bottoni["ren_mode"].toggled)
+        if scena.bottoni["simula"].toggled:
+            ris_crescita = albero.crescita()
     
-        point_cloud.verteces_ori = ris_crescita[0] / 10
-        point_cloud.links = ris_crescita[1].astype(int)
+        if scena.bottoni["ren_mode"].toggled:
+            convertitore.new_values(ris_crescita[0] / 10, ris_crescita[1].astype(int), ris_crescita[2])
+
+            point_cloud.verteces_ori = convertitore.rotate_prisms()
+            point_cloud.links = convertitore.stack_links()
+        else:
+            point_cloud.verteces_ori = ris_crescita[0] / 10
+            point_cloud.links = ris_crescita[1].astype(int)
 
         # messaggi di debug
         scena.label_text["debug1"].text = albero.mess1

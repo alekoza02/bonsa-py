@@ -32,8 +32,8 @@ DLLEXPORT void debugger(int *array, int w, int h, int t) {
 DLLEXPORT void reset_canvas(int *array, int w, int h) {
     for (int i = 0; i < w; i++){
         for (int j = 0; j < h; j++){
-            array[(i * w + j) * 3 + 1] = 30;
             array[(i * w + j) * 3 + 0] = 30;
+            array[(i * w + j) * 3 + 1] = 30;
             array[(i * w + j) * 3 + 2] = 30;
         }
     }
